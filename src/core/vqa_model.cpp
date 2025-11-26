@@ -22,20 +22,19 @@ VqaModel::VqaModel(Ort::Env& env, const std::string& modelPath,
 #else
         session_ = std::make_unique<Ort::Session>(env, modelPath.c_str(), sessionOptions_);
 #endif
-    }
-}
 
-    // 预取输入输出名称
-    Ort::AllocatorWithDefaultOptions allocator;
-    for (size_t i = 0; i < session_->GetInputCount(); ++i) {
-        auto name = session_->GetInputNameAllocated(i, allocator);
-        inputNamesStorage_.push_back(name.get());
-        inputNames_.push_back(inputNamesStorage_.back().c_str());
-    }
-    for (size_t i = 0; i < session_->GetOutputCount(); ++i) {
-        auto name = session_->GetOutputNameAllocated(i, allocator);
-        outputNamesStorage_.push_back(name.get());
-        outputNames_.push_back(outputNamesStorage_.back().c_str());
+        // 预取输入输出名称
+        Ort::AllocatorWithDefaultOptions allocator;
+        for (size_t i = 0; i < session_->GetInputCount(); ++i) {
+            auto name = session_->GetInputNameAllocated(i, allocator);
+            inputNamesStorage_.push_back(name.get());
+            inputNames_.push_back(inputNamesStorage_.back().c_str());
+        }
+        for (size_t i = 0; i < session_->GetOutputCount(); ++i) {
+            auto name = session_->GetOutputNameAllocated(i, allocator);
+            outputNamesStorage_.push_back(name.get());
+            outputNames_.push_back(outputNamesStorage_.back().c_str());
+        }
     }
 
     // 可选初始化 tokenizer

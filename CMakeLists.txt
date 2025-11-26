@@ -226,6 +226,38 @@ if(WIN32)
     endif()
 endif()
 
+# ============ 测试程序 ============
+add_executable(test_text_encoding
+    src/test_text_encoding.cpp
+    src/core/text_tokenizer.cpp
+    src/core/clip_encoder.cpp
+    src/core/image_preprocessor.cpp
+    src/core/model_manager.cpp
+    src/core/onnx_session.cpp
+    src/core/caption_model.cpp
+    src/core/vqa_model.cpp
+)
+
+target_include_directories(test_text_encoding PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${OpenCV_INCLUDE_DIRS}
+)
+
+target_link_libraries(test_text_encoding PRIVATE
+    ${OpenCV_LIBS}
+    onnxruntime
+)
+
+if(faiss_FOUND)
+    target_link_libraries(test_text_encoding PRIVATE faiss)
+else()
+    if(WIN32)
+        target_link_libraries(test_text_encoding PRIVATE faiss)
+    else()
+        target_link_libraries(test_text_encoding PRIVATE faiss)
+    endif()
+endif()
+
 # ============ 打印配置信息 ============
 message(STATUS "")
 message(STATUS "==================== Build Configuration ====================")
