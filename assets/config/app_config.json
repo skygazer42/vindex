@@ -1,0 +1,57 @@
+{
+  "application": {
+    "name": "VIndex",
+    "version": "1.0.0",
+    "window": {
+      "width": 1200,
+      "height": 800,
+      "title": "VIndex - Visual Search Engine"
+    }
+  },
+  "models": {
+    "clip": {
+      "visual_model": "assets/models/clip_visual.onnx",
+      "text_model": "assets/models/clip_text.onnx",
+      "vocab_path": "assets/vocab/bpe_simple_vocab_16e6.txt",
+      "embedding_dim": 768,
+      "model_name": "ViT-L-14"
+    },
+    "image_preprocessing": {
+      "input_size": 224,
+      "mean": [0.48145466, 0.4578275, 0.40821073],
+      "std": [0.26862954, 0.26130258, 0.27577711]
+    }
+  },
+  "database": {
+    "path": "data/vindex.db",
+    "index_path": "data/index/faiss.index",
+    "auto_save": true,
+    "batch_size": 32
+  },
+  "search": {
+    "default_top_k": 10,
+    "default_threshold": 0.0,
+    "max_results": 100
+  },
+  "ui": {
+    "gallery": {
+      "columns": 4,
+      "thumbnail_size": 200
+    },
+    "theme": "light"
+  },
+  "performance": {
+    "num_threads": 4,
+    "use_gpu": false,
+    "cache_enabled": true
+  },
+  "supported_formats": [
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".bmp",
+    ".tiff",
+    ".tif",
+    ".webp"
+  ]
+}
