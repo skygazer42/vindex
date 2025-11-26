@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QImageReader>
 #include <QPixmap>
+#include <opencv2/opencv.hpp>
 
 namespace vindex {
 namespace gui {

@@ -4,6 +4,8 @@
 #include <opencv2/opencv.hpp>
 #include <memory>
 #include <string>
+#include "image_preprocessor.h"
+#include "text_tokenizer.h"
 
 namespace vindex {
 namespace core {
@@ -13,7 +15,10 @@ namespace core {
  */
 class VqaModel {
 public:
-    VqaModel(Ort::Env& env, const std::string& modelPath);
+    VqaModel(Ort::Env& env, const std::string& modelPath,
+             const std::string& vocabPath = "",
+             int contextLength = 64,
+             int numThreads = 4);
     ~VqaModel() = default;
 
     /**
@@ -26,6 +31,14 @@ public:
 private:
     std::unique_ptr<Ort::Session> session_;
     Ort::SessionOptions sessionOptions_;
+    ImagePreprocessor preprocessor_;
+    std::unique_ptr<TextTokenizer> tokenizer_;
+
+    std::vector<std::string> inputNamesStorage_;
+    std::vector<const char*> inputNames_;
+    std::vector<std::string> outputNamesStorage_;
+    std::vector<const char*> outputNames_;
+    int contextLength_;
 };
 
 } // namespace core

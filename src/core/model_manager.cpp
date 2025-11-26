@@ -190,7 +190,10 @@ void ModelManager::initializeVqaModel() {
         std::cout << "VQA model not found, skipping: " << vqaPath << std::endl;
         return;
     }
-    vqaModel_ = std::make_unique<VqaModel>(env_, vqaPath);
+    // 选择词表：优先 BLIP 词表，其次 CLIP 词表
+    std::string blipVocab = (fs::path(vocabPath_).parent_path() / "blip_vocab.txt").string();
+    std::string vocabForVqa = fs::exists(blipVocab) ? blipVocab : vocabPath_;
+    vqaModel_ = std::make_unique<VqaModel>(env_, vqaPath, vocabForVqa);
 }
 
 } // namespace core

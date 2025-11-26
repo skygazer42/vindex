@@ -49,6 +49,12 @@ public:
     int getVocabSize() const { return vocabSize_; }
 
 private:
+    struct PairHash {
+        size_t operator()(const std::pair<std::string, std::string>& p) const {
+            return std::hash<std::string>()(p.first) ^ std::hash<std::string>()(p.second);
+        }
+    };
+
     /**
      * @brief 加载BPE词表
      */
@@ -82,14 +88,7 @@ private:
 
     std::unordered_map<std::string, int> encoder_;         // BPE token -> ID
     std::unordered_map<int, std::string> decoder_;         // ID -> BPE token
-    std::unordered_map<std::pair<std::string, std::string>, int,
-                       PairHash> bpeMerges_;               // BPE合并规则
-
-    struct PairHash {
-        size_t operator()(const std::pair<std::string, std::string>& p) const {
-            return std::hash<std::string>()(p.first) ^ std::hash<std::string>()(p.second);
-        }
-    };
+    std::unordered_map<std::pair<std::string, std::string>, int, PairHash> bpeMerges_; // BPE合并规则
 };
 
 } // namespace core

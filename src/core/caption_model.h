@@ -4,6 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include <memory>
 #include <string>
+#include "image_preprocessor.h"
 
 namespace vindex {
 namespace core {
@@ -15,7 +16,7 @@ namespace core {
  */
 class CaptionModel {
 public:
-    CaptionModel(Ort::Env& env, const std::string& modelPath);
+    CaptionModel(Ort::Env& env, const std::string& modelPath, int numThreads = 4);
     ~CaptionModel() = default;
 
     /**
@@ -28,6 +29,13 @@ public:
 private:
     std::unique_ptr<Ort::Session> session_;
     Ort::SessionOptions sessionOptions_;
+    ImagePreprocessor preprocessor_;
+
+    // 缓存输入输出名称，避免重复分配
+    std::vector<std::string> inputNamesStorage_;
+    std::vector<const char*> inputNames_;
+    std::vector<std::string> outputNamesStorage_;
+    std::vector<const char*> outputNames_;
 };
 
 } // namespace core
