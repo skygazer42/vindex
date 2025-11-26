@@ -1,0 +1,12 @@
+{
+  "name": "CN-CLIP",
+  "repo": "OFA-Sys/chinese-clip-vit-base-patch16",
+  "type": "chinese-clip",
+  "embedding_dim": 512,
+  "language": [
+    "zh",
+    "en"
+  ],
+  "visual_encoder": "ViT-B/16",
+  "text_encoder": "BERT-base-chinese"
+}

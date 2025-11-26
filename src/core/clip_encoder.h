@@ -24,13 +24,13 @@ public:
      * @brief 构造函数
      * @param visualModelPath CLIP视觉编码器ONNX模型路径
      * @param textModelPath CLIP文本编码器ONNX模型路径（可选）
-     * @param vocabPath BPE词表路径（如果使用文本编码器，必须提供）
-     * @param embeddingDim 特征向量维度（默认768，ViT-L/14）
+     * @param vocabPath 词表路径（如果使用文本编码器，必须提供；CN-CLIP 使用 BERT vocab）
+     * @param embeddingDim 特征向量维度（CN-CLIP ViT-B-16: 512, ViT-L/14: 768）
      */
     explicit ClipEncoder(const std::string& visualModelPath,
                         const std::string& textModelPath = "",
                         const std::string& vocabPath = "",
-                        int embeddingDim = 768);
+                        int embeddingDim = 512);  // CN-CLIP ViT-B-16 默认 512 维
 
     ~ClipEncoder() = default;
 
@@ -118,7 +118,7 @@ private:
      * @brief 初始化ONNX会话
      */
     void initializeSessions(const std::string& visualModelPath,
-                           const std::string& textModelPath);
+                            const std::string& textModelPath);
 
 private:
     // ONNX Runtime 环境和会话

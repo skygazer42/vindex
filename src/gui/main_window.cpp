@@ -132,7 +132,7 @@ void MainWindow::loadModels() {
     try {
         // 配置模型路径
         std::string modelPath = "./assets/models";
-        std::string vocabPath = "./assets/vocab/bpe_simple_vocab_16e6.txt";
+        std::string vocabPath = "./assets/vocab/clip_vocab.txt";
 
         // 检查路径是否存在
         if (!fs::exists(modelPath)) {
@@ -147,7 +147,7 @@ void MainWindow::loadModels() {
 
         modelManager_->setModelPath(modelPath);
         modelManager_->setVocabPath(vocabPath);
-        modelManager_->setEmbeddingDim(768);  // ViT-L/14
+        modelManager_->setEmbeddingDim(512);  // CN-CLIP 默认512维
 
         // 预加载模型（可选）
         // modelManager_->preloadAll();
@@ -179,7 +179,7 @@ void MainWindow::initializeDatabase() {
 
         fs::create_directories(dataDir + "/index");
 
-        dbManager_ = std::make_unique<index::DatabaseManager>(dbPath, indexPath, 768);
+        dbManager_ = std::make_unique<index::DatabaseManager>(dbPath, indexPath, modelManager_->getEmbeddingDim());
 
         if (!dbManager_->initialize()) {
             throw std::runtime_error("Failed to initialize database");

@@ -10,11 +10,11 @@
   },
   "models": {
     "clip": {
-      "visual_model": "assets/models/clip_visual.onnx",
-      "text_model": "assets/models/clip_text.onnx",
-      "vocab_path": "assets/vocab/bpe_simple_vocab_16e6.txt",
-      "embedding_dim": 768,
-      "model_name": "ViT-L-14"
+      "visual_model": "assets/models/cn-clip-eisneim/vit-b-16.img.fp32.onnx",
+      "text_model": "assets/models/cn-clip-eisneim/vit-b-16.txt.fp32.onnx",
+      "vocab_path": "assets/vocab/clip_vocab.txt",
+      "embedding_dim": 512,
+      "model_name": "CN-CLIP-ViT-B-16"
     },
     "image_preprocessing": {
       "input_size": 224,

@@ -1,0 +1,11 @@
+{
+  "name": "Taiyi-CLIP",
+  "repo": "IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese",
+  "type": "taiyi-clip",
+  "embedding_dim": 512,
+  "language": [
+    "zh"
+  ],
+  "visual_encoder": "ViT-B/16",
+  "text_encoder": "Chinese-Roberta-wwm-ext"
+}

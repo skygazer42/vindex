@@ -46,7 +46,16 @@ data/
 *.index
 
 # Models (large files, use Git LFS or download separately)
-assets/models/*.onnx
+assets/models/**/*.onnx
+assets/models/**/*.bin
+assets/models/**/*.pt
+assets/models/**/*.ckpt
+assets/models/**/*.safetensors
+assets/models/**/*.extra_file
+assets/models/**/*.tar.gz
+assets/models/**/*.zip
+assets/models/**/*.pth
+assets/models/**/*.pb
 assets/vocab/*.txt
 
 # Logs

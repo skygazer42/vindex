@@ -120,6 +120,18 @@ cmake --build . --config Release
 - 缩略图缓存：`data/cache/`
 - 图库根目录：`data/image_database/`
 
+## 中文 CLIP 配置示例
+
+如需中文文搜图，建议切换到中文 CLIP（保持视觉/文本编码器同一套权重）：
+- 备选模型（Hugging Face）：
+  - `IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese`（ViT-B/16，常见输出维度 512/768，按导出结果设置）
+  - `eisneim/cn-clip_vit-b-16`（维度通常 512）
+- 步骤：
+  1) 下载模型并导出 ONNX：视觉→`assets/models/clip_visual.onnx`，文本→`assets/models/clip_text.onnx`。若使用 eisneim 提供的 ONNX，可直接放置到 `assets/models/cn-clip-eisneim/vit-b-16.{img,txt}.fp32.onnx`（或 fp16）。
+  2) 导出/复制 tokenizer 词表到 `assets/vocab/clip_vocab.txt`（或使用模型自带 `assets/models/cn-clip/vocab.txt`）。
+  3) 在 `ModelManager`/配置中将 `embedding_dim` 设置为模型输出维度（eisneim 为 512），并清空旧的 FAISS 索引后重建。
+  4) 重新导入图库，文搜图即使用中文模型。
+
 ## 开发与测试建议
 
 - 首先跑通图搜图：导出 CLIP、少量样本图、`Database → Import`、`Image Search` Tab。
@@ -136,8 +148,8 @@ cmake --build . --config Release
 
 ## 数据流速览
 
-- 图搜图：`QImage → cv::Mat 预处理 → CLIP Visual → 768D → FAISS 检索 → SQLite 取元数据 → UI 展示`
-- 文搜图：`文本 → BPE Tokenizer → CLIP Text → 768D → FAISS 检索 → 元数据 → UI`
+- 图搜图：`QImage → cv::Mat 预处理 → CLIP Visual → 512/768D → FAISS 检索 → SQLite 取元数据 → UI 展示`
+- 文搜图：`文本 → Tokenizer → CLIP Text → 512/768D → FAISS 检索 → 元数据 → UI`
 - 图文匹配：`图像 + 文本 → CLIP 双编码 → 相似度得分 → UI`
 - 图生文 / VQA：`图像 (+ 问题) → BLIP/BLIP2 ONNX → 文本输出 → UI`
 

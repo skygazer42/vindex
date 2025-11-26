@@ -17,13 +17,35 @@ ClipEncoder::ClipEncoder(const std::string& visualModelPath,
     // 初始化图像预处理器
     imagePreprocessor_ = std::make_unique<ImagePreprocessor>();
 
-    // 如果提供了文本模型和词表，初始化文本分词器
-    if (!textModelPath.empty() && !vocabPath.empty()) {
-        textTokenizer_ = std::make_unique<TextTokenizer>(vocabPath);
-    }
-
     // 初始化ONNX会话
     initializeSessions(visualModelPath, textModelPath);
+
+    // 如果提供了文本模型和词表，初始化文本分词器
+    if (!textModelPath.empty() && !vocabPath.empty()) {
+        // 默认 77（OpenAI CLIP）
+        int contextLen = 77;
+
+        // 如果模型输入固定长度，优先从 ONNX 形状读取
+        if (textSession_) {
+            auto typeInfo = textSession_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo();
+            auto shape = typeInfo.GetShape();
+            if (shape.size() >= 2 && shape[1] > 0) {
+                contextLen = static_cast<int>(shape[1]);
+            }
+        }
+
+        // 如果形状不明确，再按路径特征回退
+        if (contextLen == 77) {
+            std::string lowerPath = textModelPath;
+            std::transform(lowerPath.begin(), lowerPath.end(), lowerPath.begin(), ::tolower);
+            if (lowerPath.find("cn-clip-eisneim") != std::string::npos ||
+                lowerPath.find("vit-b-16.txt") != std::string::npos) {
+                contextLen = 52;
+            }
+        }
+
+        textTokenizer_ = std::make_unique<TextTokenizer>(vocabPath, contextLen);
+    }
 }
 
 void ClipEncoder::initializeSessions(const std::string& visualModelPath,
@@ -170,9 +192,22 @@ std::vector<float> ClipEncoder::runVisualInference(const std::vector<float>& ima
 
     std::vector<float> features(outputData, outputData + outputSize);
 
-    // 对于单张图像，进行L2归一化（批次处理时已在模型中归一化）
-    if (inputShape[0] == 1 && features.size() == embeddingDim_) {
-        normalizeL2(features);
+    // 对每个样本进行 L2 归一化（确保批次和单张处理结果一致）
+    int batchSize = static_cast<int>(inputShape[0]);
+    for (int i = 0; i < batchSize; ++i) {
+        // 获取当前样本的特征向量范围
+        auto start = features.begin() + i * embeddingDim_;
+        auto end = start + embeddingDim_;
+
+        // 计算 L2 范数
+        float norm = std::sqrt(std::inner_product(start, end, start, 0.0f));
+
+        // 归一化
+        if (norm > 1e-8f) {
+            for (auto it = start; it != end; ++it) {
+                *it /= norm;
+            }
+        }
     }
 
     return features;
@@ -238,12 +273,40 @@ std::vector<float> ClipEncoder::runTextInference(const std::vector<int64_t>& tex
         inputShape.size()
     );
 
+    // 注意：中文 CLIP 模型通常需要 attention_mask
+    std::vector<Ort::Value> inputs;
+    std::vector<const char*> inputNames;
+
+    if (textInputNames_.size() >= 2) {
+        // 构建 attention mask (非零为1)
+        std::vector<int64_t> attention(textTokens.size(), 0);
+        for (size_t i = 0; i < textTokens.size(); ++i) {
+            attention[i] = textTokens[i] == 0 ? 0 : 1;
+        }
+
+        Ort::Value attnTensor = Ort::Value::CreateTensor<int64_t>(
+            memoryInfo_,
+            attention.data(),
+            attention.size(),
+            inputShape.data(),
+            inputShape.size()
+        );
+
+        // 假设输入顺序：input_ids, attention_mask
+        inputNames = {textInputNames_[0], textInputNames_[1]};
+        inputs.emplace_back(std::move(inputTensor));
+        inputs.emplace_back(std::move(attnTensor));
+    } else {
+        inputNames = textInputNames_;
+        inputs.emplace_back(std::move(inputTensor));
+    }
+
     // 运行推理
     auto outputTensors = textSession_->Run(
         Ort::RunOptions{nullptr},
-        textInputNames_.data(),
-        &inputTensor,
-        1,
+        inputNames.data(),
+        inputs.data(),
+        inputs.size(),
         textOutputNames_.data(),
         textOutputNames_.size()
     );
@@ -259,9 +322,21 @@ std::vector<float> ClipEncoder::runTextInference(const std::vector<int64_t>& tex
 
     std::vector<float> features(outputData, outputData + outputSize);
 
-    // 对于单个文本，进行L2归一化
-    if (batchSize == 1 && features.size() == embeddingDim_) {
-        normalizeL2(features);
+    // 对每个样本进行 L2 归一化（确保批次和单个文本处理结果一致）
+    for (int i = 0; i < batchSize; ++i) {
+        // 获取当前样本的特征向量范围
+        auto start = features.begin() + i * embeddingDim_;
+        auto end = start + embeddingDim_;
+
+        // 计算 L2 范数
+        float norm = std::sqrt(std::inner_product(start, end, start, 0.0f));
+
+        // 归一化
+        if (norm > 1e-8f) {
+            for (auto it = start; it != end; ++it) {
+                *it /= norm;
+            }
+        }
     }
 
     return features;

@@ -10,8 +10,8 @@ namespace core {
 
 ModelManager::ModelManager()
     : modelPath_("./assets/models")
-    , vocabPath_("./assets/vocab/bpe_simple_vocab_16e6.txt")
-    , embeddingDim_(768)  // ViT-L/14默认维度
+    , vocabPath_("./assets/vocab/clip_vocab.txt")
+    , embeddingDim_(512)  // CN-CLIP embedding维度512 (注意：context length为52)
     , env_(ORT_LOGGING_LEVEL_WARNING, "ModelManager")
 {
 }
@@ -137,13 +137,31 @@ void ModelManager::releaseAll() {
 void ModelManager::initializeClipEncoder() {
     std::cout << "Initializing CLIP encoder..." << std::endl;
 
-    // 构建模型路径
-    std::string visualModelPath = (fs::path(modelPath_) / "clip_visual.onnx").string();
-    std::string textModelPath = (fs::path(modelPath_) / "clip_text.onnx").string();
+    // 构建候选模型路径（优先标准命名，其次 CN-CLIP 下载结构）
+    std::vector<fs::path> visualCandidates = {
+        fs::path(modelPath_) / "clip_visual.onnx",
+        fs::path(modelPath_) / "cn-clip-eisneim" / "vit-b-16.img.fp32.onnx",
+        fs::path(modelPath_) / "cn-clip-eisneim" / "vit-b-16.img.fp16.onnx",
+    };
+    std::vector<fs::path> textCandidates = {
+        fs::path(modelPath_) / "clip_text.onnx",
+        fs::path(modelPath_) / "cn-clip-eisneim" / "vit-b-16.txt.fp32.onnx",
+        fs::path(modelPath_) / "cn-clip-eisneim" / "vit-b-16.txt.fp16.onnx",
+    };
+
+    auto pickExisting = [](const std::vector<fs::path>& paths) -> std::string {
+        for (const auto& p : paths) {
+            if (fs::exists(p)) return p.string();
+        }
+        return {};
+    };
+
+    std::string visualModelPath = pickExisting(visualCandidates);
+    std::string textModelPath = pickExisting(textCandidates);
 
     // 检查文件是否存在
     if (!fs::exists(visualModelPath)) {
-        throw std::runtime_error("CLIP visual model not found: " + visualModelPath);
+        throw std::runtime_error("CLIP visual model not found. Place clip_visual.onnx or cn-clip-eisneim/vit-b-16.img.fp32.onnx under assets/models.");
     }
 
     // 文本模型是可选的
@@ -154,7 +172,14 @@ void ModelManager::initializeClipEncoder() {
 
     // 词表也是可选的（如果没有文本模型）
     std::string vocabPath = vocabPath_;
-    if (!textModelPath.empty() && !fs::exists(vocabPath)) {
+    // 额外候选：cn-clip vocab
+    if (!fs::exists(vocabPath)) {
+        fs::path cnClipVocab = fs::path(modelPath_) / "cn-clip" / "vocab.txt";
+        if (fs::exists(cnClipVocab)) {
+            vocabPath = cnClipVocab.string();
+        }
+    }
+    if (!textModelPath.empty() && !vocabPath.empty() && !fs::exists(vocabPath)) {
         std::cout << "Warning: Vocabulary file not found: " << vocabPath << std::endl;
         vocabPath = "";
     }
@@ -171,6 +196,9 @@ void ModelManager::initializeClipEncoder() {
     std::cout << "  - Visual encoder: " << visualModelPath << std::endl;
     if (!textModelPath.empty()) {
         std::cout << "  - Text encoder: " << textModelPath << std::endl;
+    }
+    if (!vocabPath.empty()) {
+        std::cout << "  - Vocab: " << vocabPath << std::endl;
     }
     std::cout << "  - Embedding dimension: " << embeddingDim_ << std::endl;
 }
