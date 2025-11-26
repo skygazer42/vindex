@@ -15,6 +15,12 @@
 namespace vindex {
 namespace gui {
 
+class TextSearchWidget;
+class MatchWidget;
+class CaptionWidget;
+class VQAWidget;
+class DatabaseWidget;
+
 /**
  * @brief 主窗口
  *
@@ -59,6 +65,11 @@ private:
     // UI组件
     QTabWidget* tabWidget_;
     ImageSearchWidget* imageSearchTab_;
+    class TextSearchWidget* textSearchTab_;
+    class MatchWidget* matchTab_;
+    class CaptionWidget* captionTab_;
+    class VQAWidget* vqaTab_;
+    class DatabaseWidget* databaseTab_;
 
     // 对话框
     QProgressDialog* loadingDialog_;

@@ -76,6 +76,9 @@ set(CORE_SOURCES
     src/core/text_tokenizer.cpp
     src/core/clip_encoder.cpp
     src/core/model_manager.cpp
+    src/core/onnx_session.cpp
+    src/core/caption_model.cpp
+    src/core/vqa_model.cpp
 )
 
 set(CORE_HEADERS
@@ -83,29 +86,44 @@ set(CORE_HEADERS
     src/core/text_tokenizer.h
     src/core/clip_encoder.h
     src/core/model_manager.h
+    src/core/onnx_session.h
+    src/core/caption_model.h
+    src/core/vqa_model.h
 )
 
 # 索引模块
 set(INDEX_SOURCES
     src/index/faiss_index.cpp
     src/index/database_manager.cpp
+    src/index/id_mapping.cpp
 )
 
 set(INDEX_HEADERS
     src/index/faiss_index.h
     src/index/database_manager.h
+    src/index/id_mapping.h
 )
 
 # GUI模块
 set(GUI_SOURCES
     src/gui/image_gallery.cpp
     src/gui/image_search_widget.cpp
+    src/gui/text_search_widget.cpp
+    src/gui/match_widget.cpp
+    src/gui/caption_widget.cpp
+    src/gui/vqa_widget.cpp
+    src/gui/database_widget.cpp
     src/gui/main_window.cpp
 )
 
 set(GUI_HEADERS
     src/gui/image_gallery.h
     src/gui/image_search_widget.h
+    src/gui/text_search_widget.h
+    src/gui/match_widget.h
+    src/gui/caption_widget.h
+    src/gui/vqa_widget.h
+    src/gui/database_widget.h
     src/gui/main_window.h
 )
 

@@ -12,6 +12,7 @@ ModelManager::ModelManager()
     : modelPath_("./assets/models")
     , vocabPath_("./assets/vocab/bpe_simple_vocab_16e6.txt")
     , embeddingDim_(768)  // ViT-L/14默认维度
+    , env_(ORT_LOGGING_LEVEL_WARNING, "ModelManager")
 {
 }
 
@@ -64,6 +65,32 @@ bool ModelManager::hasClipEncoder() const {
     return clipEncoder_ != nullptr;
 }
 
+CaptionModel& ModelManager::captionModel() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!captionModel_) {
+        initializeCaptionModel();
+    }
+    return *captionModel_;
+}
+
+bool ModelManager::hasCaptionModel() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return captionModel_ != nullptr;
+}
+
+VqaModel& ModelManager::vqaModel() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!vqaModel_) {
+        initializeVqaModel();
+    }
+    return *vqaModel_;
+}
+
+bool ModelManager::hasVqaModel() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return vqaModel_ != nullptr;
+}
+
 // ==================== 预加载 ====================
 
 bool ModelManager::preloadAll() {
@@ -75,6 +102,13 @@ bool ModelManager::preloadAll() {
         // 加载CLIP编码器
         if (!clipEncoder_) {
             initializeClipEncoder();
+        }
+        // 可选加载其他模型
+        if (!captionModel_) {
+            initializeCaptionModel();
+        }
+        if (!vqaModel_) {
+            initializeVqaModel();
         }
 
         std::cout << "All models loaded successfully!" << std::endl;
@@ -92,6 +126,8 @@ void ModelManager::releaseAll() {
     std::cout << "Releasing all models..." << std::endl;
 
     clipEncoder_.reset();
+    captionModel_.reset();
+    vqaModel_.reset();
 
     std::cout << "All models released!" << std::endl;
 }
@@ -137,6 +173,24 @@ void ModelManager::initializeClipEncoder() {
         std::cout << "  - Text encoder: " << textModelPath << std::endl;
     }
     std::cout << "  - Embedding dimension: " << embeddingDim_ << std::endl;
+}
+
+void ModelManager::initializeCaptionModel() {
+    std::string captionPath = (fs::path(modelPath_) / "blip_caption.onnx").string();
+    if (!fs::exists(captionPath)) {
+        std::cout << "Caption model not found, skipping: " << captionPath << std::endl;
+        return;
+    }
+    captionModel_ = std::make_unique<CaptionModel>(env_, captionPath);
+}
+
+void ModelManager::initializeVqaModel() {
+    std::string vqaPath = (fs::path(modelPath_) / "blip_vqa.onnx").string();
+    if (!fs::exists(vqaPath)) {
+        std::cout << "VQA model not found, skipping: " << vqaPath << std::endl;
+        return;
+    }
+    vqaModel_ = std::make_unique<VqaModel>(env_, vqaPath);
 }
 
 } // namespace core

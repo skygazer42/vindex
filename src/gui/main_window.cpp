@@ -9,6 +9,11 @@
 #include <QDesktopServices>
 #include <QUrl>
 #include <filesystem>
+#include "text_search_widget.h"
+#include "match_widget.h"
+#include "caption_widget.h"
+#include "vqa_widget.h"
+#include "database_widget.h"
 
 namespace fs = std::filesystem;
 
@@ -186,6 +191,21 @@ void MainWindow::initializeDatabase() {
         // 创建图搜图标签页
         imageSearchTab_ = new ImageSearchWidget(dbManager_.get(), this);
         tabWidget_->addTab(imageSearchTab_, "Image Search");
+        // 文搜图
+        textSearchTab_ = new TextSearchWidget(dbManager_.get(), this);
+        tabWidget_->addTab(textSearchTab_, "Text Search");
+        // 图文匹配
+        matchTab_ = new MatchWidget(modelManager_, this);
+        tabWidget_->addTab(matchTab_, "Match");
+        // 图生文
+        captionTab_ = new CaptionWidget(modelManager_, this);
+        tabWidget_->addTab(captionTab_, "Caption");
+        // VQA
+        vqaTab_ = new VQAWidget(modelManager_, this);
+        tabWidget_->addTab(vqaTab_, "VQA");
+        // 图库管理
+        databaseTab_ = new DatabaseWidget(dbManager_.get(), this);
+        tabWidget_->addTab(databaseTab_, "Library");
 
         // 更新统计信息
         int64_t imageCount = dbManager_->totalCount();

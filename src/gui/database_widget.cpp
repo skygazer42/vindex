@@ -1,5 +1,6 @@
 #include "database_widget.h"
 #include <QVBoxLayout>
+#include <QPushButton>
 #include <QString>
 
 namespace vindex {
