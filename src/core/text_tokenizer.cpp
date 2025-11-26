@@ -4,6 +4,9 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cctype>
+#include <locale>
+#include <codecvt>
+#include <cwctype>
 
 namespace vindex {
 namespace core {
@@ -70,14 +73,14 @@ bool isWhitespace(uint32_t cp) {
 
 } // anonymous namespace
 
-TextTokenizer::TextTokenizer(const std::string& vocabPath, int contextLength)
+TextTokenizer::TextTokenizer(const std::string& vocabPath, int contextLength, bool doLowerCase)
     : contextLength_(contextLength)
     , vocabSize_(0)
     , padToken_(0)
     , unkToken_(100)
     , clsToken_(101)
     , sepToken_(102)
-{
+    , doLowerCase_(doLowerCase) {
     loadVocabulary(vocabPath);
 }
 
@@ -213,45 +216,41 @@ std::string TextTokenizer::decode(const std::vector<int64_t>& tokens) {
 }
 
 std::vector<std::string> TextTokenizer::basicTokenize(const std::string& text) {
+    std::string cleaned = cleanText(text);
+    std::string spaced = tokenizeChineseChars(cleaned);
+
     std::vector<std::string> tokens;
-    std::string currentToken;
-
-    // 将文本拆分为 UTF-8 字符
-    std::vector<std::string> utf8Chars = splitUtf8Chars(text);
-
-    for (const auto& utf8Char : utf8Chars) {
-        uint32_t cp = utf8ToCodepoint(utf8Char);
-
+    std::string current;
+    for (const auto& ch : splitUtf8Chars(spaced)) {
+        uint32_t cp = utf8ToCodepoint(ch);
         if (isWhitespace(cp)) {
-            // 空白字符：结束当前 token
-            if (!currentToken.empty()) {
-                tokens.push_back(currentToken);
-                currentToken.clear();
+            if (!current.empty()) {
+                tokens.push_back(current);
+                current.clear();
             }
-        } else if (isChineseChar(cp) || (utf8Char.size() == 1 && isPunctuation(utf8Char[0]))) {
-            // 中文字符或标点符号：单独作为一个 token
-            if (!currentToken.empty()) {
-                tokens.push_back(currentToken);
-                currentToken.clear();
-            }
-            tokens.push_back(utf8Char);
-        } else {
-            // 其他字符（包括英文）：累积到当前 token
-            currentToken += utf8Char;
+            continue;
         }
-    }
-
-    // 添加最后一个 token
-    if (!currentToken.empty()) {
-        tokens.push_back(currentToken);
-    }
-
-    // 转换为小写（仅对 ASCII 字符）
-    for (auto& token : tokens) {
-        for (char& c : token) {
-            if (c >= 'A' && c <= 'Z') {
-                c = static_cast<char>(c + 32);
+        if (isPunctuation(cp)) {
+            if (!current.empty()) {
+                tokens.push_back(current);
+                current.clear();
             }
+            tokens.push_back(ch);
+            continue;
+        }
+        current += ch;
+    }
+    if (!current.empty()) {
+        tokens.push_back(current);
+    }
+
+    // 小写与去重音
+    if (doLowerCase_) {
+        for (auto& tk : tokens) {
+            for (char& c : tk) {
+                c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            }
+            tk = stripAccents(tk);
         }
     }
 
@@ -315,13 +314,18 @@ std::vector<std::string> TextTokenizer::wordpieceTokenize(const std::string& tok
     return pieces;
 }
 
-bool TextTokenizer::isPunctuation(char c) const {
-    unsigned char uc = static_cast<unsigned char>(c);
-    // ASCII 标点符号
-    return (uc >= 33 && uc <= 47) ||   // !"#$%&'()*+,-./
-           (uc >= 58 && uc <= 64) ||   // :;<=>?@
-           (uc >= 91 && uc <= 96) ||   // [\]^_`
-           (uc >= 123 && uc <= 126);   // {|}~
+bool TextTokenizer::isPunctuation(char32_t cp) const {
+    if (cp <= 0x7F) {
+        unsigned char uc = static_cast<unsigned char>(cp);
+        return (uc >= 33 && uc <= 47) ||
+               (uc >= 58 && uc <= 64) ||
+               (uc >= 91 && uc <= 96) ||
+               (uc >= 123 && uc <= 126);
+    }
+    // Unicode 标点范围
+    return (cp >= 0x2000 && cp <= 0x206F) || // General Punctuation
+           (cp >= 0x3000 && cp <= 0x303F) || // CJK Symbols and Punctuation
+           (cp >= 0xFF00 && cp <= 0xFF65);   // Fullwidth ASCII variants
 }
 
 bool TextTokenizer::isChineseChar(uint32_t cp) const {
@@ -347,6 +351,54 @@ bool TextTokenizer::isChineseChar(uint32_t cp) const {
     if (cp >= 0xFF00 && cp <= 0xFFEF) return true;
 
     return false;
+}
+
+bool TextTokenizer::isControl(char32_t cp) const {
+    if (cp == '\t' || cp == '\n' || cp == '\r') return false;
+    if (cp < 32 || (cp >= 0x7F && cp <= 0x9F)) return true;
+    return false;
+}
+
+bool TextTokenizer::isWhitespace(char32_t cp) const {
+    return cp == ' ' || cp == '\t' || cp == '\n' || cp == '\r' ||
+           cp == 0x00A0 || cp == 0x1680 ||
+           (cp >= 0x2000 && cp <= 0x200A) ||
+           cp == 0x202F || cp == 0x205F || cp == 0x3000;
+}
+
+std::string TextTokenizer::cleanText(const std::string& text) const {
+    std::string out;
+    for (const auto& ch : splitUtf8Chars(text)) {
+        uint32_t cp = utf8ToCodepoint(ch);
+        if (isControl(cp)) continue;
+        if (isWhitespace(cp)) {
+            out.push_back(' ');
+        } else {
+            out += ch;
+        }
+    }
+    return out;
+}
+
+std::string TextTokenizer::tokenizeChineseChars(const std::string& text) const {
+    std::string out;
+    for (const auto& ch : splitUtf8Chars(text)) {
+        uint32_t cp = utf8ToCodepoint(ch);
+        if (isChineseChar(cp)) {
+            out += " ";
+            out += ch;
+            out += " ";
+        } else {
+            out += ch;
+        }
+    }
+    return out;
+}
+
+std::string TextTokenizer::stripAccents(const std::string& text) const {
+    // 仅对 ASCII 范围做简单处理：保留原样
+    // 可扩展为完整的 unicode 去重音处理
+    return text;
 }
 
 } // namespace core

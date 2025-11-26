@@ -23,9 +23,10 @@ public:
     /**
      * @brief 构造函数
      * @param vocabPath 词表文件路径（BERT vocab.txt 格式）
-     * @param contextLength 上下文长度（CN-CLIP 默认 52）
+     * @param contextLength 上下文长度（CN-CLIP 默认 52，标准 CLIP 可设 77）
+     * @param doLowerCase 是否小写化（英文模型常用 true，中文通常 false）
      */
-    explicit TextTokenizer(const std::string& vocabPath, int contextLength = 52);
+    explicit TextTokenizer(const std::string& vocabPath, int contextLength = 52, bool doLowerCase = false);
     ~TextTokenizer() = default;
 
     /**
@@ -58,33 +59,20 @@ private:
      */
     void loadVocabulary(const std::string& vocabPath);
 
-    /**
-     * @brief 基础分词：处理空白、标点、中文字符
-     * @param text 输入文本
-     * @return 基础 token 列表
-     */
     std::vector<std::string> basicTokenize(const std::string& text);
-
-    /**
-     * @brief WordPiece 分词
-     * @param token 单个基础 token
-     * @return 子词列表
-     */
     std::vector<std::string> wordpieceTokenize(const std::string& token);
-
-    /**
-     * @brief 判断是否为标点符号
-     */
-    bool isPunctuation(char c) const;
-
-    /**
-     * @brief 判断是否为中文字符
-     */
-    bool isChineseChar(uint32_t codepoint) const;
+    bool isPunctuation(char32_t cp) const;
+    bool isChineseChar(char32_t codepoint) const;
+    bool isControl(char32_t cp) const;
+    bool isWhitespace(char32_t cp) const;
+    std::string cleanText(const std::string& text) const;
+    std::string stripAccents(const std::string& text) const;
+    std::string tokenizeChineseChars(const std::string& text) const;
 
 private:
     int contextLength_;                                    // 上下文长度 (CN-CLIP: 52)
     int vocabSize_;                                        // 词表大小
+    bool doLowerCase_;
 
     // 特殊 token IDs
     int padToken_;      // [PAD]

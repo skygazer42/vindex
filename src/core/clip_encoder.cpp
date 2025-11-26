@@ -3,6 +3,7 @@
 #include <cmath>
 #include <numeric>
 #include <algorithm>
+#include <optional>
 
 namespace vindex {
 namespace core {
@@ -273,30 +274,70 @@ std::vector<float> ClipEncoder::runTextInference(const std::vector<int64_t>& tex
         inputShape.size()
     );
 
-    // 注意：中文 CLIP 模型通常需要 attention_mask
+    // 注意：文本模型可能需要 attention_mask，按名称自动匹配
     std::vector<Ort::Value> inputs;
     std::vector<const char*> inputNames;
+    std::string idName;
+    std::string attnName;
+    for (const char* n : textInputNames_) {
+        std::string lower = n;
+        std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+        if (idName.empty() && (lower.find("input") != std::string::npos || lower.find("text") != std::string::npos || lower.find("ids") != std::string::npos)) {
+            idName = n;
+        } else if (attnName.empty() && (lower.find("attention") != std::string::npos || lower.find("mask") != std::string::npos)) {
+            attnName = n;
+        }
+    }
+    if (idName.empty() && !textInputNames_.empty()) {
+        idName = textInputNames_[0];
+    }
 
-    if (textInputNames_.size() >= 2) {
-        // 构建 attention mask (非零为1)
+    bool needAttn = !attnName.empty() || textInputNames_.size() > 1;
+    if (attnName.empty() && needAttn && textInputNames_.size() > 1) {
+        attnName = textInputNames_[1];
+    }
+
+    std::optional<Ort::Value> attnTensorOpt;
+    if (needAttn) {
         std::vector<int64_t> attention(textTokens.size(), 0);
         for (size_t i = 0; i < textTokens.size(); ++i) {
             attention[i] = textTokens[i] == 0 ? 0 : 1;
         }
-
-        Ort::Value attnTensor = Ort::Value::CreateTensor<int64_t>(
+        attnTensorOpt = Ort::Value::CreateTensor<int64_t>(
             memoryInfo_,
             attention.data(),
             attention.size(),
             inputShape.data(),
             inputShape.size()
         );
+    }
 
-        // 假设输入顺序：input_ids, attention_mask
-        inputNames = {textInputNames_[0], textInputNames_[1]};
-        inputs.emplace_back(std::move(inputTensor));
-        inputs.emplace_back(std::move(attnTensor));
-    } else {
+    for (const char* name : textInputNames_) {
+        if (name == idName) {
+            inputNames.push_back(name);
+            inputs.emplace_back(std::move(inputTensor));
+        } else if (needAttn && name == attnName && attnTensorOpt.has_value()) {
+            inputNames.push_back(name);
+            inputs.emplace_back(std::move(attnTensorOpt.value()));
+        }
+    }
+
+    // 回退：如果匹配数量不一致，按顺序提供 input_ids + attention_mask（若需要）
+    if (inputNames.size() != textInputNames_.size()) {
+        inputNames.clear();
+        inputs.clear();
+        if (!textInputNames_.empty()) {
+            inputNames.push_back(textInputNames_[0]);
+            inputs.emplace_back(std::move(inputTensor));
+        }
+        if (needAttn && attnTensorOpt.has_value() && textInputNames_.size() > 1) {
+            inputNames.push_back(textInputNames_[1]);
+            inputs.emplace_back(std::move(attnTensorOpt.value()));
+        }
+    }
+
+    // 最终兜底：至少传入 input_ids
+    if (inputNames.empty()) {
         inputNames = textInputNames_;
         inputs.emplace_back(std::move(inputTensor));
     }
