@@ -2,6 +2,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
+#include <QLabel>
 #include <QMessageBox>
 #include <QDesktopServices>
 #include <QUrl>
