@@ -9,6 +9,7 @@
 #include <QFileInfo>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QApplication>
 
 namespace vindex {
 namespace gui {
@@ -178,10 +179,20 @@ void ImageSearchWidget::performSearch() {
     progressBar_->setVisible(true);
     progressBar_->setRange(0, 0);  // 不确定进度
 
+    // 强制刷新 UI
+    QApplication::processEvents();
+
     try {
         // 获取参数
         int topK = topKSpinBox_->value();
-        float threshold = thresholdEdit_->text().toFloat();
+
+        // 验证阈值输入
+        bool ok = false;
+        float threshold = thresholdEdit_->text().toFloat(&ok);
+        if (!ok || threshold < 0.0f || threshold > 1.0f) {
+            threshold = 0.0f;
+            thresholdEdit_->setText("0.0");
+        }
 
         // 执行搜索
         auto results = dbManager_->searchByImage(

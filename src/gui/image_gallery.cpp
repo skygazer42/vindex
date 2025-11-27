@@ -31,7 +31,7 @@ void ImageCard::setupUI() {
     imageLabel_ = new QLabel(this);
     imageLabel_->setAlignment(Qt::AlignCenter);
     imageLabel_->setFixedSize(200, 200);
-    imageLabel_->setScaledContents(true);
+    imageLabel_->setScaledContents(false);  // 不拉伸，保持宽高比
     imageLabel_->setStyleSheet("QLabel { background-color: #f0f0f0; border: 1px solid #ccc; }");
 
     QPixmap thumbnail = loadThumbnail(imagePath_, 200);
@@ -73,7 +73,15 @@ void ImageCard::setupUI() {
 
 QPixmap ImageCard::loadThumbnail(const QString& path, int size) {
     QImageReader reader(path);
-    reader.setScaledSize(QSize(size, size));
+
+    // 获取原始尺寸，保持宽高比缩放
+    QSize originalSize = reader.size();
+    if (originalSize.isValid()) {
+        QSize scaledSize = originalSize.scaled(size, size, Qt::KeepAspectRatio);
+        reader.setScaledSize(scaledSize);
+    } else {
+        reader.setScaledSize(QSize(size, size));
+    }
 
     QImage image = reader.read();
     if (image.isNull()) {

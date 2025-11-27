@@ -9,6 +9,7 @@
 #include <QFileInfo>
 #include <QSettings>
 #include <QSplitter>
+#include <QApplication>
 
 namespace vindex {
 namespace gui {
@@ -247,9 +248,19 @@ void TextSearchWidget::performSearch(const QString& queryText) {
     progressBar_->setRange(0, 0);
     progressBar_->setVisible(true);
 
+    // 强制刷新 UI
+    QApplication::processEvents();
+
     try {
         int topK = topKSpinBox_->value();
-        float threshold = thresholdEdit_->text().toFloat();
+
+        // 验证阈值输入
+        bool ok = false;
+        float threshold = thresholdEdit_->text().toFloat(&ok);
+        if (!ok || threshold < 0.0f || threshold > 1.0f) {
+            threshold = 0.0f;
+            thresholdEdit_->setText("0.0");
+        }
 
         auto results = dbManager_->searchByText(
             queryText.toStdString(),

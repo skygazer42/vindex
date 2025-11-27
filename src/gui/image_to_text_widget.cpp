@@ -5,13 +5,11 @@
 #include <QFileDialog>
 #include <QImageReader>
 #include <QMessageBox>
-#include <QDesktopServices>
-#include <QUrl>
 #include <QPixmap>
 #include <QAbstractItemView>
-#include <filesystem>
-
-namespace fs = std::filesystem;
+#include <QCoreApplication>
+#include <QFileInfo>
+#include <QStringList>
 
 namespace vindex {
 namespace gui {
@@ -86,6 +84,18 @@ void ImageToTextWidget::loadCorpus() {
         showError("Model manager not initialized");
         return;
     }
+    auto findCorpus = []() -> QString {
+        QStringList candidates = {
+            "resources/text_corpus.txt",
+            QCoreApplication::applicationDirPath() + "/resources/text_corpus.txt",
+            QCoreApplication::applicationDirPath() + "/../resources/text_corpus.txt"
+        };
+        for (const auto& c : candidates) {
+            if (QFileInfo::exists(c)) return c;
+        }
+        return {};
+    };
+
     try {
         auto& encoder = modelManager_->clipEncoder();
         if (!encoder.hasTextEncoder()) {
@@ -94,12 +104,12 @@ void ImageToTextWidget::loadCorpus() {
             searchBtn_->setEnabled(false);
             return;
         }
-        std::string path = "./resources/text_corpus.txt";
-        if (!fs::exists(path)) {
-            showError("Text corpus file not found: resources/text_corpus.txt");
+        QString path = findCorpus();
+        if (path.isEmpty()) {
+            showError("Text corpus file not found (expected resources/text_corpus.txt).");
             return;
         }
-        corpusReady_ = corpus_.loadFromFile(path, encoder);
+        corpusReady_ = corpus_.loadFromFile(path.toStdString(), encoder);
         if (!corpusReady_) {
             showError("Failed to build text corpus index.");
         } else {

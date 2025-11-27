@@ -112,6 +112,7 @@ set(GUI_SOURCES
     src/gui/image_search_widget.cpp
     src/gui/text_search_widget.cpp
     src/gui/match_widget.cpp
+    src/gui/image_to_text_widget.cpp
     src/gui/caption_widget.cpp
     src/gui/vqa_widget.cpp
     src/gui/database_widget.cpp
@@ -123,6 +124,7 @@ set(GUI_HEADERS
     src/gui/image_search_widget.h
     src/gui/text_search_widget.h
     src/gui/match_widget.h
+    src/gui/image_to_text_widget.h
     src/gui/caption_widget.h
     src/gui/vqa_widget.h
     src/gui/database_widget.h
