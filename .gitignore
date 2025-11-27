@@ -45,6 +45,11 @@ data/
 *.db-journal
 *.index
 
+# Allow project UI assets under resources/data
+!resources/data/
+!resources/data/*.png
+!resources/data/*.jpg
+
 # Models (large files, use Git LFS or download separately)
 assets/models/**/*.onnx
 assets/models/**/*.bin
