@@ -259,6 +259,79 @@ vindex/
 
 ---
 
+## 模型说明
+
+本项目使用多个 AI 模型实现不同的视觉理解功能：
+
+### CN-CLIP (Chinese-CLIP)
+
+| 组件 | 文件 | 作用 |
+|:---|:---|:---|
+| **视觉编码器** | `clip_visual.onnx` | 将图像编码为 512 维特征向量，用于图像检索和匹配 |
+| **文本编码器** | `clip_text.onnx` | 将中/英文文本编码为 512 维特征向量，用于文本搜索 |
+| **词表** | `clip_vocab.txt` | BERT 中文词表 (21128 词)，用于文本分词 |
+
+**模型来源**: [OFA-Sys/Chinese-CLIP](https://github.com/OFA-Sys/Chinese-CLIP)
+
+**特点**:
+- 基于 OpenAI CLIP 架构，针对中文优化
+- 图像和文本共享语义空间，支持跨模态检索
+- ViT-B/16 版本平衡了性能和效率
+
+**应用场景**:
+- 以图搜图：提取查询图像特征 → FAISS 检索相似向量
+- 以文搜图：提取文本特征 → FAISS 检索匹配图像
+- 图文匹配：计算图像和文本特征的余弦相似度
+
+### Taiyi-BLIP (太乙-BLIP)
+
+| 组件 | 文件 | 作用 |
+|:---|:---|:---|
+| **视觉编码器** | `blip_visual_encoder.onnx` | 提取图像视觉特征，输出 patch embeddings |
+| **文本解码器** | `blip_text_decoder.onnx` | 自回归生成图像描述文本 |
+| **配置文件** | `blip_config.json` | 模型参数配置（图像尺寸、词表大小等） |
+| **词表** | `tokenizer/vocab.txt` | BERT 中文词表，用于文本生成和解码 |
+
+**模型来源**: [IDEA-CCNL/Taiyi-BLIP-750M-Chinese](https://huggingface.co/IDEA-CCNL/Taiyi-BLIP-750M-Chinese)
+
+**特点**:
+- 基于 Salesforce BLIP 架构，750M 参数
+- 专门针对中文图像描述任务微调
+- 支持生成流畅的中文图像描述
+
+**应用场景**:
+- 图像描述：输入图像 → 视觉编码 → 文本解码 → 中文描述
+
+### 模型文件结构
+
+```
+assets/models/
+├── clip_visual.onnx          # CN-CLIP 视觉编码器 (~350MB)
+├── clip_text.onnx            # CN-CLIP 文本编码器 (~250MB)
+├── blip/                     # BLIP 模型目录
+│   ├── blip_visual_encoder.onnx   # BLIP 视觉编码器 (~400MB)
+│   ├── blip_text_decoder.onnx     # BLIP 文本解码器 (~450MB)
+│   ├── blip_config.json           # 模型配置
+│   └── tokenizer/
+│       └── vocab.txt              # 词表文件
+assets/vocab/
+└── clip_vocab.txt            # CN-CLIP 词表
+```
+
+### 导出模型
+
+```bash
+cd scripts
+
+# 导出 CN-CLIP 模型 (用于搜索和匹配)
+python export_cn_clip_onnx.py --model ViT-B-16 --output ../assets/models
+
+# 导出 BLIP 模型 (用于图像描述)
+python export_blip_onnx.py --output ../assets/models/blip
+```
+
+---
+
 ## 数据流
 
 ```
@@ -346,7 +419,7 @@ python export_cn_clip_onnx.py --model ViT-B-16 --output ../assets/models
 - [x] 图文匹配
 - [x] 图库管理
 - [x] 中英文界面切换
-- [ ] 图像描述（BLIP）
+- [x] 图像描述（BLIP）
 - [ ] 视觉问答（VQA）
 - [ ] GPU 加速
 - [ ] 打包发布（AppImage / DMG / MSI）
@@ -375,6 +448,7 @@ python export_cn_clip_onnx.py --model ViT-B-16 --output ../assets/models
 ## 致谢
 
 - [CN-CLIP](https://github.com/OFA-Sys/Chinese-CLIP) - 中文 CLIP 模型
+- [Taiyi-BLIP](https://huggingface.co/IDEA-CCNL/Taiyi-BLIP-750M-Chinese) - 中文图像描述模型
 - [FAISS](https://github.com/facebookresearch/faiss) - 向量相似度搜索
 - [ONNX Runtime](https://github.com/microsoft/onnxruntime) - 模型推理引擎
 - [Qt](https://www.qt.io/) - 跨平台 GUI 框架
