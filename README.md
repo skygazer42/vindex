@@ -2,7 +2,6 @@
   <img src="resources/data/logo.jpg" alt="VIndex Logo" width="260" height="260">
 </p>
 
-<h1 align="center">VIndex</h1>
 
 <p align="center">
   <strong>Visual Search Engine - 视觉搜索引擎</strong>
@@ -64,10 +63,6 @@
   <img src="resources/data/background.png" alt="App Background" width="100%">
 </p>
 
-<p align="center">
-  <img src="docs/images/screenshot_image_search.png" alt="Image Search" width="45%">
-  <img src="docs/images/screenshot_text_search.png" alt="Text Search" width="45%">
-</p>
 
 ---
 
