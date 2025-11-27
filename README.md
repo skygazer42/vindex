@@ -45,6 +45,7 @@
 | **图文匹配** | 计算图像与文本的相似度得分 | CN-CLIP 双编码器 |
 | **图像描述** | 自动生成图像的文字描述 | BLIP Caption |
 | **视觉问答** | 针对图像内容进行问答 | BLIP VQA |
+| **OCR识别** | 检测和识别图像中的文字 | PP-OCRv4 |
 | **图库管理** | 导入、浏览、分类、删除图像 | SQLite + FAISS |
 
 ### 亮点
@@ -190,6 +191,7 @@ make -j$(sysctl -n hw.ncpu)
 | **Match** | 图文匹配 | 选择图像，输入文本，点击"计算相似度" |
 | **Caption** | 图像描述 | 选择图像，点击"生成描述" |
 | **VQA** | 视觉问答 | 选择图像，输入问题，点击"提问" |
+| **OCR** | 文字识别 | 选择图像，点击"识别"，支持中英文 |
 | **Library** | 图库管理 | 浏览、筛选、删除已导入的图像 |
 
 ### 导入图像
@@ -221,7 +223,8 @@ vindex/
 │   │   ├── clip_encoder.*       # CLIP 编码器
 │   │   ├── model_manager.*      # 模型管理器
 │   │   ├── caption_model.*      # 图像描述模型
-│   │   └── vqa_model.*          # VQA 模型
+│   │   ├── vqa_model.*          # VQA 模型
+│   │   └── ocr_model.*          # OCR 模型
 │   ├── index/                   # 索引模块
 │   │   ├── faiss_index.*        # FAISS 向量索引
 │   │   └── database_manager.*   # 数据库管理
@@ -322,6 +325,25 @@ vindex/
 **应用场景**:
 - 视觉问答：输入图像 + 问题 → 编码 → 生成中文答案
 
+### PP-OCRv4 (文字识别)
+
+| 组件 | 文件 | 作用 |
+|:---|:---|:---|
+| **检测模型** | `ch_PP-OCRv4_det_infer.onnx` | 检测图像中的文字区域 |
+| **识别模型** | `ch_PP-OCRv4_rec_infer.onnx` | 识别文字区域的内容 |
+| **字典文件** | `ppocr_keys_v1.txt` | 字符集定义（6000+中文字符） |
+| **配置文件** | `ocr_config.json` | OCR 参数配置 |
+
+**模型来源**: [PaddlePaddle/PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)
+
+**特点**:
+- 两阶段架构：DBNet 检测 + CRNN 识别
+- 支持中英文混合识别
+- 高精度、低延迟
+
+**应用场景**:
+- 文字识别：输入图像 → 检测文字区域 → 识别文字内容 → 输出文本
+
 ### 模型文件结构
 
 ```
@@ -341,6 +363,11 @@ assets/models/
 │   ├── blip_vqa_config.json          # VQA 配置
 │   └── tokenizer/
 │       └── vocab.txt                 # 词表文件
+├── ocr/                      # OCR 模型目录
+│   ├── ch_PP-OCRv4_det_infer.onnx   # OCR 检测模型 (~4.5MB)
+│   ├── ch_PP-OCRv4_rec_infer.onnx   # OCR 识别模型 (~12MB)
+│   ├── ppocr_keys_v1.txt            # 字符字典
+│   └── ocr_config.json              # OCR 配置
 assets/vocab/
 └── clip_vocab.txt            # CN-CLIP 词表
 ```
@@ -358,6 +385,9 @@ python export_blip_onnx.py --output ../assets/models/blip
 
 # 导出 BLIP VQA 模型 (用于视觉问答)
 python export_blip_vqa_onnx.py --output ../assets/models/blip_vqa
+
+# 下载 OCR 模型 (用于文字识别)
+python download_ocr_models.py --output ../assets/models/ocr
 ```
 
 ---
@@ -383,6 +413,9 @@ python export_blip_vqa_onnx.py --output ../assets/models/blip_vqa
 │                                                                     │
 │  视觉问答:                                                           │
 │  Image + Question → BLIP VQA → Answer                               │
+│                                                                     │
+│  文字识别:                                                           │
+│  Image → PP-OCRv4 检测 → 文字区域 → PP-OCRv4 识别 → 文本              │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -451,6 +484,7 @@ python export_cn_clip_onnx.py --model ViT-B-16 --output ../assets/models
 - [x] 中英文界面切换
 - [x] 图像描述（BLIP）
 - [x] 视觉问答（VQA）
+- [x] OCR 文字识别（PP-OCRv4）
 - [ ] GPU 加速
 - [ ] 打包发布（AppImage / DMG / MSI）
 - [ ] 插件系统

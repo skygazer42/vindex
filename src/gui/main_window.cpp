@@ -17,6 +17,7 @@
 #include "api_ai_widget.h"
 #include "caption_widget.h"
 #include "vqa_widget.h"
+#include "ocr_widget.h"
 #include "database_widget.h"
 
 namespace fs = std::filesystem;
@@ -297,6 +298,9 @@ void MainWindow::initializeDatabase() {
         // VQA
         vqaTab_ = new VQAWidget(modelManager_, this);
         tabWidget_->addTab(vqaTab_, TR("VQA"));
+        // OCR
+        ocrTab_ = new OcrWidget(modelManager_, this);
+        tabWidget_->addTab(ocrTab_, TR("OCR"));
         // 图库管理
         databaseTab_ = new DatabaseWidget(dbManager_.get(), this);
         tabWidget_->addTab(databaseTab_, TR("Library"));

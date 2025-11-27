@@ -99,6 +99,7 @@ set(CORE_SOURCES
     src/core/onnx_session.cpp
     src/core/caption_model.cpp
     src/core/vqa_model.cpp
+    src/core/ocr_model.cpp
     src/utils/api_client.cpp
     src/utils/translator.cpp
 )
@@ -111,6 +112,7 @@ set(CORE_HEADERS
     src/core/onnx_session.h
     src/core/caption_model.h
     src/core/vqa_model.h
+    src/core/ocr_model.h
     src/utils/api_client.h
     src/utils/translator.h
 )
@@ -140,6 +142,7 @@ set(GUI_SOURCES
     src/gui/api_ai_widget.cpp
     src/gui/caption_widget.cpp
     src/gui/vqa_widget.cpp
+    src/gui/ocr_widget.cpp
     src/gui/database_widget.cpp
     src/gui/main_window.cpp
 )
@@ -153,6 +156,7 @@ set(GUI_HEADERS
     src/gui/api_ai_widget.h
     src/gui/caption_widget.h
     src/gui/vqa_widget.h
+    src/gui/ocr_widget.h
     src/gui/database_widget.h
     src/gui/main_window.h
 )

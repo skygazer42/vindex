@@ -20,6 +20,7 @@ class TextSearchWidget;
 class MatchWidget;
 class CaptionWidget;
 class VQAWidget;
+class OcrWidget;
 class DatabaseWidget;
 class ImageToTextWidget;
 class ApiAIWidget;
@@ -79,6 +80,7 @@ private:
     class ApiAIWidget* apiTab_;
     class CaptionWidget* captionTab_;
     class VQAWidget* vqaTab_;
+    class OcrWidget* ocrTab_;
     class DatabaseWidget* databaseTab_;
 
     // 状态栏
