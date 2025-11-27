@@ -71,8 +71,8 @@
 ### 1. 克隆项目
 
 ```bash
- https://github.com/skygazer42/vindex.git
- cd vindex
+git clone https://github.com/skygazer42/vindex.git
+cd vindex
 ```
 
 ### 2. 安装依赖
