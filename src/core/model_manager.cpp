@@ -227,15 +227,27 @@ void ModelManager::initializeCaptionModel() {
 }
 
 void ModelManager::initializeVqaModel() {
-    std::string vqaPath = (fs::path(modelPath_) / "blip_vqa.onnx").string();
-    if (!fs::exists(vqaPath)) {
-        std::cout << "VQA model not found, skipping: " << vqaPath << std::endl;
+    // BLIP VQA 模型目录
+    fs::path vqaDir = fs::path(modelPath_) / "blip_vqa";
+
+    // 检查是否存在 VQA 目录和必要的模型文件
+    fs::path visualEncoder = vqaDir / "blip_vqa_visual_encoder.onnx";
+    fs::path textEncoder = vqaDir / "blip_vqa_text_encoder.onnx";
+    fs::path textDecoder = vqaDir / "blip_vqa_text_decoder.onnx";
+
+    if (!fs::exists(vqaDir) || !fs::exists(visualEncoder)) {
+        std::cout << "BLIP VQA model not found. Please run:" << std::endl;
+        std::cout << "  cd scripts && python export_blip_vqa_onnx.py --output ../assets/models/blip_vqa" << std::endl;
         return;
     }
-    // 选择词表：优先 BLIP 词表，其次 CLIP 词表
-    std::string blipVocab = (fs::path(vocabPath_).parent_path() / "blip_vocab.txt").string();
-    std::string vocabForVqa = fs::exists(blipVocab) ? blipVocab : vocabPath_;
-    vqaModel_ = std::make_unique<VqaModel>(env_, vqaPath, vocabForVqa);
+
+    vqaModel_ = std::make_unique<VqaModel>(env_, vqaDir.string());
+
+    if (vqaModel_->loaded()) {
+        std::cout << "BLIP VQA model initialized successfully!" << std::endl;
+    } else {
+        std::cout << "BLIP VQA model partially loaded (some components missing)" << std::endl;
+    }
 }
 
 } // namespace core

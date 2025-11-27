@@ -302,18 +302,45 @@ vindex/
 **应用场景**:
 - 图像描述：输入图像 → 视觉编码 → 文本解码 → 中文描述
 
+### BLIP VQA (视觉问答)
+
+| 组件 | 文件 | 作用 |
+|:---|:---|:---|
+| **视觉编码器** | `blip_vqa_visual_encoder.onnx` | 提取图像视觉特征 |
+| **文本编码器** | `blip_vqa_text_encoder.onnx` | 编码问题文本，结合图像特征 |
+| **文本解码器** | `blip_vqa_text_decoder.onnx` | 生成答案文本 |
+| **配置文件** | `blip_vqa_config.json` | VQA 模型参数配置 |
+| **词表** | `tokenizer/vocab.txt` | BERT 中文词表 |
+
+**模型来源**: [IDEA-CCNL/Taiyi-BLIP-750M-Chinese](https://huggingface.co/IDEA-CCNL/Taiyi-BLIP-750M-Chinese)
+
+**特点**:
+- 三阶段架构：视觉编码 → 问题编码 → 答案生成
+- 支持中文问答
+- 可针对图像内容进行开放式问答
+
+**应用场景**:
+- 视觉问答：输入图像 + 问题 → 编码 → 生成中文答案
+
 ### 模型文件结构
 
 ```
 assets/models/
 ├── clip_visual.onnx          # CN-CLIP 视觉编码器 (~350MB)
 ├── clip_text.onnx            # CN-CLIP 文本编码器 (~250MB)
-├── blip/                     # BLIP 模型目录
+├── blip/                     # BLIP Caption 模型目录
 │   ├── blip_visual_encoder.onnx   # BLIP 视觉编码器 (~400MB)
 │   ├── blip_text_decoder.onnx     # BLIP 文本解码器 (~450MB)
 │   ├── blip_config.json           # 模型配置
 │   └── tokenizer/
 │       └── vocab.txt              # 词表文件
+├── blip_vqa/                 # BLIP VQA 模型目录
+│   ├── blip_vqa_visual_encoder.onnx  # VQA 视觉编码器 (~400MB)
+│   ├── blip_vqa_text_encoder.onnx    # VQA 文本编码器 (~250MB)
+│   ├── blip_vqa_text_decoder.onnx    # VQA 文本解码器 (~450MB)
+│   ├── blip_vqa_config.json          # VQA 配置
+│   └── tokenizer/
+│       └── vocab.txt                 # 词表文件
 assets/vocab/
 └── clip_vocab.txt            # CN-CLIP 词表
 ```
@@ -326,8 +353,11 @@ cd scripts
 # 导出 CN-CLIP 模型 (用于搜索和匹配)
 python export_cn_clip_onnx.py --model ViT-B-16 --output ../assets/models
 
-# 导出 BLIP 模型 (用于图像描述)
+# 导出 BLIP Caption 模型 (用于图像描述)
 python export_blip_onnx.py --output ../assets/models/blip
+
+# 导出 BLIP VQA 模型 (用于视觉问答)
+python export_blip_vqa_onnx.py --output ../assets/models/blip_vqa
 ```
 
 ---
@@ -420,7 +450,7 @@ python export_cn_clip_onnx.py --model ViT-B-16 --output ../assets/models
 - [x] 图库管理
 - [x] 中英文界面切换
 - [x] 图像描述（BLIP）
-- [ ] 视觉问答（VQA）
+- [x] 视觉问答（VQA）
 - [ ] GPU 加速
 - [ ] 打包发布（AppImage / DMG / MSI）
 - [ ] 插件系统
