@@ -204,12 +204,26 @@ void ModelManager::initializeClipEncoder() {
 }
 
 void ModelManager::initializeCaptionModel() {
-    std::string captionPath = (fs::path(modelPath_) / "blip_caption.onnx").string();
-    if (!fs::exists(captionPath)) {
-        std::cout << "Caption model not found, skipping: " << captionPath << std::endl;
+    // BLIP 模型目录 (包含 blip_visual_encoder.onnx, blip_text_decoder.onnx, blip_config.json, tokenizer/)
+    fs::path blipDir = fs::path(modelPath_) / "blip";
+
+    // 检查是否存在 BLIP 目录和必要的模型文件
+    fs::path visualEncoder = blipDir / "blip_visual_encoder.onnx";
+    fs::path textDecoder = blipDir / "blip_text_decoder.onnx";
+
+    if (!fs::exists(blipDir) || !fs::exists(visualEncoder)) {
+        std::cout << "BLIP caption model not found. Please run:" << std::endl;
+        std::cout << "  cd scripts && python export_blip_onnx.py --output ../assets/models/blip" << std::endl;
         return;
     }
-    captionModel_ = std::make_unique<CaptionModel>(env_, captionPath);
+
+    captionModel_ = std::make_unique<CaptionModel>(env_, blipDir.string());
+
+    if (captionModel_->loaded()) {
+        std::cout << "BLIP caption model initialized successfully!" << std::endl;
+    } else {
+        std::cout << "BLIP caption model partially loaded (some components missing)" << std::endl;
+    }
 }
 
 void ModelManager::initializeVqaModel() {
