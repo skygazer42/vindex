@@ -12,6 +12,7 @@
 #include <filesystem>
 #include "text_search_widget.h"
 #include "match_widget.h"
+#include "image_to_text_widget.h"
 #include "caption_widget.h"
 #include "vqa_widget.h"
 #include "database_widget.h"
@@ -192,6 +193,9 @@ void MainWindow::initializeDatabase() {
         // 文搜图
         textSearchTab_ = new TextSearchWidget(dbManager_.get(), this);
         tabWidget_->addTab(textSearchTab_, "Text Search");
+        // 图搜文（示例语料）
+        imageToTextTab_ = new ImageToTextWidget(modelManager_, this);
+        tabWidget_->addTab(imageToTextTab_, "Image→Text");
         // 图文匹配
         matchTab_ = new MatchWidget(modelManager_, this);
         tabWidget_->addTab(matchTab_, "Match");

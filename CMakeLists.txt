@@ -96,12 +96,14 @@ set(INDEX_SOURCES
     src/index/faiss_index.cpp
     src/index/database_manager.cpp
     src/index/id_mapping.cpp
+    src/index/text_corpus_index.cpp
 )
 
 set(INDEX_HEADERS
     src/index/faiss_index.h
     src/index/database_manager.h
     src/index/id_mapping.h
+    src/index/text_corpus_index.h
 )
 
 # GUI模块

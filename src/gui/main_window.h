@@ -19,6 +19,7 @@ class MatchWidget;
 class CaptionWidget;
 class VQAWidget;
 class DatabaseWidget;
+class ImageToTextWidget;
 
 /**
  * @brief 主窗口
@@ -66,6 +67,7 @@ private:
     ImageSearchWidget* imageSearchTab_;
     class TextSearchWidget* textSearchTab_;
     class MatchWidget* matchTab_;
+    class ImageToTextWidget* imageToTextTab_;
     class CaptionWidget* captionTab_;
     class VQAWidget* vqaTab_;
     class DatabaseWidget* databaseTab_;

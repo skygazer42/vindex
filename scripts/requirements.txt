@@ -4,8 +4,13 @@ onnxruntime>=1.16.0
 open-clip-torch>=2.20.0
 Pillow>=9.0.0
 numpy>=1.24.0
+tqdm>=4.65.0
 
 # 中文CLIP支持 (可选)
 huggingface_hub>=0.16.0
 transformers>=4.30.0
 cn_clip  # CN-CLIP官方包
+
+# 向量数据库 (可选，二选一)
+pymilvus>=2.3.0  # Milvus 向量数据库 (支持 Milvus Lite 本地模式)
+# faiss-cpu>=1.7.0  # 或使用 FAISS (已在C++项目中集成)
