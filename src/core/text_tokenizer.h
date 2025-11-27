@@ -52,6 +52,7 @@ public:
 
     int getContextLength() const { return contextLength_; }
     int getVocabSize() const { return vocabSize_; }
+    int getPadToken() const { return padToken_; }
 
 private:
     /**

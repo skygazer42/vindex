@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <optional>
 
 namespace fs = std::filesystem;
 
@@ -411,18 +412,120 @@ std::vector<int64_t> VqaModel::greedyDecode(const std::vector<float>& questionEm
             encoderShape.size()
         );
 
-        std::vector<const char*> inputNames;
+        // decoder 输入名匹配
+        std::string idsName;
+        std::string attnName;
+        std::string encHiddenName;
+        std::string encAttnName;
         for (const auto& name : decoderInputNames_) {
-            inputNames.push_back(name.c_str());
+            std::string lower = name;
+            std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+            if (idsName.empty() && lower.find("input") != std::string::npos && lower.find("id") != std::string::npos) {
+                idsName = name;
+            } else if (attnName.empty() && lower.find("attention") != std::string::npos && lower.find("encoder") == std::string::npos) {
+                attnName = name;
+            } else if (encAttnName.empty() && lower.find("encoder") != std::string::npos && lower.find("attention") != std::string::npos) {
+                encAttnName = name;
+            } else if (encHiddenName.empty() && (lower.find("encoder") != std::string::npos && lower.find("hidden") != std::string::npos)) {
+                encHiddenName = name;
+            }
         }
+
+        if (idsName.empty() && !decoderInputNames_.empty()) idsName = decoderInputNames_[0];
+        if (encHiddenName.empty() && decoderInputNames_.size() > 1) encHiddenName = decoderInputNames_[1];
+
+        bool needDecAttn = !attnName.empty();
+        bool needEncAttn = !encAttnName.empty();
+
+        // decoder attention_mask
+        std::vector<int64_t> decAttention;
+        std::vector<int64_t> decAttentionShape;
+        if (needDecAttn) {
+            decAttention.assign(inputIds.size(), 1);
+            for (size_t i = 0; i < inputIds.size(); ++i) {
+                if (config_.padTokenId >= 0 && inputIds[i] == config_.padTokenId) {
+                    decAttention[i] = 0;
+                }
+            }
+            decAttentionShape = {batchSize, static_cast<int64_t>(inputIds.size())};
+        }
+
+        // encoder_attention_mask
+        std::vector<int64_t> encAttention;
+        std::vector<int64_t> encAttentionShape;
+        if (needEncAttn) {
+            encAttention.assign(static_cast<size_t>(encoderSeqLen), 1);
+            encAttentionShape = {batchSize, encoderSeqLen};
+        }
+
+        std::vector<const char*> inputNames;
+        std::vector<Ort::Value> inputs;
+
+        auto pushIfMatch = [&](const std::string& expected, Ort::Value&& tensor) {
+            inputNames.push_back(expected.c_str());
+            inputs.emplace_back(std::move(tensor));
+        };
+
+        for (const auto& name : decoderInputNames_) {
+            if (name == idsName) {
+                pushIfMatch(name, std::move(inputIdsTensor));
+            } else if (needDecAttn && name == attnName) {
+                Ort::Value attnTensor = Ort::Value::CreateTensor<int64_t>(
+                    memoryInfo_,
+                    decAttention.data(),
+                    decAttention.size(),
+                    decAttentionShape.data(),
+                    decAttentionShape.size()
+                );
+                pushIfMatch(name, std::move(attnTensor));
+            } else if (name == encHiddenName) {
+                pushIfMatch(name, std::move(encoderTensor));
+            } else if (needEncAttn && name == encAttnName) {
+                Ort::Value encAttnTensor = Ort::Value::CreateTensor<int64_t>(
+                    memoryInfo_,
+                    encAttention.data(),
+                    encAttention.size(),
+                    encAttentionShape.data(),
+                    encAttentionShape.size()
+                );
+                pushIfMatch(name, std::move(encAttnTensor));
+            }
+        }
+
+        // fallback：如果未匹配到所有必需输入，按已有顺序补齐
+        if (inputNames.empty()) {
+            inputNames.push_back(idsName.c_str());
+            inputs.emplace_back(std::move(inputIdsTensor));
+            inputNames.push_back(encHiddenName.c_str());
+            inputs.emplace_back(std::move(encoderTensor));
+            if (needDecAttn) {
+                Ort::Value attnTensor = Ort::Value::CreateTensor<int64_t>(
+                    memoryInfo_,
+                    decAttention.data(),
+                    decAttention.size(),
+                    decAttentionShape.data(),
+                    decAttentionShape.size()
+                );
+                inputNames.push_back(attnName.c_str());
+                inputs.emplace_back(std::move(attnTensor));
+            }
+            if (needEncAttn) {
+                Ort::Value encAttnTensor = Ort::Value::CreateTensor<int64_t>(
+                    memoryInfo_,
+                    encAttention.data(),
+                    encAttention.size(),
+                    encAttentionShape.data(),
+                    encAttentionShape.size()
+                );
+                inputNames.push_back(encAttnName.c_str());
+                inputs.emplace_back(std::move(encAttnTensor));
+            }
+        }
+
         std::vector<const char*> outputNames;
         for (const auto& name : decoderOutputNames_) {
             outputNames.push_back(name.c_str());
         }
-
-        std::vector<Ort::Value> inputs;
-        inputs.push_back(std::move(inputIdsTensor));
-        inputs.push_back(std::move(encoderTensor));
 
         auto outputs = textDecoder_->Run(
             Ort::RunOptions{nullptr},

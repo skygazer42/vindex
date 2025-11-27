@@ -1,0 +1,59 @@
+cmake_minimum_required(VERSION 3.16)
+project(VIndexTest VERSION 1.0.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Find OpenCV
+find_package(OpenCV REQUIRED)
+
+# ONNX Runtime - try to find it
+if(DEFINED ENV{ONNXRUNTIME_ROOT})
+    set(ONNXRUNTIME_ROOT $ENV{ONNXRUNTIME_ROOT})
+elseif(WIN32)
+    # Common Windows paths
+    if(EXISTS "C:/libs/onnxruntime-win-x64-1.16.0")
+        set(ONNXRUNTIME_ROOT "C:/libs/onnxruntime-win-x64-1.16.0")
+    elseif(EXISTS "C:/onnxruntime")
+        set(ONNXRUNTIME_ROOT "C:/onnxruntime")
+    endif()
+else()
+    set(ONNXRUNTIME_ROOT "/usr/local/onnxruntime")
+endif()
+
+# Add ONNX Runtime includes and libs
+if(EXISTS ${ONNXRUNTIME_ROOT})
+    include_directories(${ONNXRUNTIME_ROOT}/include)
+    link_directories(${ONNXRUNTIME_ROOT}/lib)
+    message(STATUS "Found ONNX Runtime at: ${ONNXRUNTIME_ROOT}")
+else()
+    message(WARNING "ONNX Runtime not found at ${ONNXRUNTIME_ROOT}")
+    message(WARNING "Please set ONNXRUNTIME_ROOT environment variable")
+endif()
+
+# Create test executable
+add_executable(test_inference test_inference.cpp)
+
+# Link libraries
+target_link_libraries(test_inference
+    ${OpenCV_LIBS}
+    onnxruntime
+)
+
+# On Windows, we might need the import library
+if(WIN32)
+    target_link_libraries(test_inference onnxruntime.dll)
+endif()
+
+# Copy ONNX Runtime DLL to output directory on Windows
+if(WIN32 AND EXISTS ${ONNXRUNTIME_ROOT}/bin/onnxruntime.dll)
+    add_custom_command(TARGET test_inference POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${ONNXRUNTIME_ROOT}/bin/onnxruntime.dll"
+        $<TARGET_FILE_DIR:test_inference>
+    )
+endif()
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "OpenCV version: ${OpenCV_VERSION}")
+message(STATUS "OpenCV libraries: ${OpenCV_LIBS}")

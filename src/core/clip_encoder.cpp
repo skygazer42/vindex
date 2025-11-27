@@ -36,6 +36,20 @@ ClipEncoder::ClipEncoder(const std::string& visualModelPath,
     // 初始化ONNX会话
     initializeSessions(visualModelPath, textModelPath);
 
+    // Infer embedding dimension from model outputs (prefer visual, fallback text)
+    auto inferDimFromSession = [](const std::unique_ptr<Ort::Session>& session) -> int {
+        if (!session) return -1;
+        auto info = session->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo();
+        auto shape = info.GetShape();
+        if (!shape.empty() && shape.back() > 0) {
+            return static_cast<int>(shape.back());
+        }
+        return -1;
+    };
+    int inferredDim = inferDimFromSession(visualSession_);
+    if (inferredDim <= 0) inferredDim = inferDimFromSession(textSession_);
+    if (inferredDim > 0) embeddingDim_ = inferredDim;
+
     // 如果提供了文本模型和词表，初始化文本分词器
     if (!textModelPath.empty() && !vocabPath.empty()) {
         // 默认 77（OpenAI CLIP）
@@ -85,19 +99,29 @@ void ClipEncoder::initializeSessions(const std::string& visualModelPath,
         // 获取输入/输出名称
         Ort::AllocatorWithDefaultOptions allocator;
 
+        visualInputNamesStorage_.clear();
+        visualOutputNamesStorage_.clear();
         size_t numInputNodes = visualSession_->GetInputCount();
+        visualInputNamesStorage_.reserve(numInputNodes);
         for (size_t i = 0; i < numInputNodes; i++) {
             auto inputName = visualSession_->GetInputNameAllocated(i, allocator);
             visualInputNamesStorage_.push_back(std::string(inputName.get()));
-            visualInputNames_.push_back(visualInputNamesStorage_.back().c_str());
         }
 
         size_t numOutputNodes = visualSession_->GetOutputCount();
+        visualOutputNamesStorage_.reserve(numOutputNodes);
         for (size_t i = 0; i < numOutputNodes; i++) {
             auto outputName = visualSession_->GetOutputNameAllocated(i, allocator);
             visualOutputNamesStorage_.push_back(std::string(outputName.get()));
-            visualOutputNames_.push_back(visualOutputNamesStorage_.back().c_str());
         }
+
+        // rebuild pointer arrays to avoid dangling pointers on reallocation
+        visualInputNames_.clear();
+        visualOutputNames_.clear();
+        visualInputNames_.reserve(visualInputNamesStorage_.size());
+        visualOutputNames_.reserve(visualOutputNamesStorage_.size());
+        for (const auto& n : visualInputNamesStorage_) visualInputNames_.push_back(n.c_str());
+        for (const auto& n : visualOutputNamesStorage_) visualOutputNames_.push_back(n.c_str());
     }
 
     // 加载文本编码器
@@ -112,19 +136,28 @@ void ClipEncoder::initializeSessions(const std::string& visualModelPath,
         // 获取输入/输出名称
         Ort::AllocatorWithDefaultOptions allocator;
 
+        textInputNamesStorage_.clear();
+        textOutputNamesStorage_.clear();
         size_t numInputNodes = textSession_->GetInputCount();
+        textInputNamesStorage_.reserve(numInputNodes);
         for (size_t i = 0; i < numInputNodes; i++) {
             auto inputName = textSession_->GetInputNameAllocated(i, allocator);
             textInputNamesStorage_.push_back(std::string(inputName.get()));
-            textInputNames_.push_back(textInputNamesStorage_.back().c_str());
         }
 
         size_t numOutputNodes = textSession_->GetOutputCount();
+        textOutputNamesStorage_.reserve(numOutputNodes);
         for (size_t i = 0; i < numOutputNodes; i++) {
             auto outputName = textSession_->GetOutputNameAllocated(i, allocator);
             textOutputNamesStorage_.push_back(std::string(outputName.get()));
-            textOutputNames_.push_back(textOutputNamesStorage_.back().c_str());
         }
+
+        textInputNames_.clear();
+        textOutputNames_.clear();
+        textInputNames_.reserve(textInputNamesStorage_.size());
+        textOutputNames_.reserve(textOutputNamesStorage_.size());
+        for (const auto& n : textInputNamesStorage_) textInputNames_.push_back(n.c_str());
+        for (const auto& n : textOutputNamesStorage_) textOutputNames_.push_back(n.c_str());
     }
 }
 
@@ -208,17 +241,18 @@ std::vector<float> ClipEncoder::runVisualInference(const std::vector<float>& ima
 
     std::vector<float> features(outputData, outputData + outputSize);
 
-    // 对每个样本进行 L2 归一化（确保批次和单张处理结果一致）
     int batchSize = static_cast<int>(inputShape[0]);
+    size_t sampleDim = batchSize > 0 ? outputSize / static_cast<size_t>(batchSize) : 0;
+    if (sampleDim > 0 && embeddingDim_ != static_cast<int>(sampleDim)) {
+        embeddingDim_ = static_cast<int>(sampleDim);
+    }
+
+    // 对每个样本进行 L2 归一化（确保批次和单张处理结果一致）
     for (int i = 0; i < batchSize; ++i) {
-        // 获取当前样本的特征向量范围
-        auto start = features.begin() + i * embeddingDim_;
-        auto end = start + embeddingDim_;
+        auto start = features.begin() + i * sampleDim;
+        auto end = start + sampleDim;
 
-        // 计算 L2 范数
         float norm = std::sqrt(std::inner_product(start, end, start, 0.0f));
-
-        // 归一化
         if (norm > 1e-8f) {
             for (auto it = start; it != end; ++it) {
                 *it /= norm;
@@ -305,6 +339,7 @@ std::vector<float> ClipEncoder::runTextInference(const std::vector<int64_t>& tex
 
     // 创建 attention 向量（需保证生命周期覆盖 Run 调用）
     std::vector<int64_t> attention;
+    const int padToken = textTokenizer_->getPadToken();
     auto makeIdTensor = [&]() {
         return Ort::Value::CreateTensor<int64_t>(
             memoryInfo_,
@@ -316,9 +351,10 @@ std::vector<float> ClipEncoder::runTextInference(const std::vector<int64_t>& tex
     };
     auto makeAttnTensor = [&]() -> std::optional<Ort::Value> {
         if (!needAttn) return std::nullopt;
-        attention.assign(textTokens.size(), 0);
+        attention.assign(textTokens.size(), 1);
         for (size_t i = 0; i < textTokens.size(); ++i) {
-            attention[i] = textTokens[i] == 0 ? 0 : 1;
+            bool isPad = (padToken >= 0) ? (textTokens[i] == padToken) : false;
+            attention[i] = isPad ? 0 : 1;
         }
         return Ort::Value::CreateTensor<int64_t>(
             memoryInfo_,
@@ -405,16 +441,17 @@ std::vector<float> ClipEncoder::runTextInference(const std::vector<int64_t>& tex
 
     std::vector<float> features(outputData, outputData + outputSize);
 
+    size_t sampleDim = batchSize > 0 ? outputSize / static_cast<size_t>(batchSize) : 0;
+    if (sampleDim > 0 && embeddingDim_ != static_cast<int>(sampleDim)) {
+        embeddingDim_ = static_cast<int>(sampleDim);
+    }
+
     // 对每个样本进行 L2 归一化（确保批次和单个文本处理结果一致）
     for (int i = 0; i < batchSize; ++i) {
-        // 获取当前样本的特征向量范围
-        auto start = features.begin() + i * embeddingDim_;
-        auto end = start + embeddingDim_;
+        auto start = features.begin() + i * sampleDim;
+        auto end = start + sampleDim;
 
-        // 计算 L2 范数
         float norm = std::sqrt(std::inner_product(start, end, start, 0.0f));
-
-        // 归一化
         if (norm > 1e-8f) {
             for (auto it = start; it != end; ++it) {
                 *it /= norm;

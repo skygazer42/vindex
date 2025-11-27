@@ -1,0 +1,173 @@
+cmake_minimum_required(VERSION 3.16)
+project(VIndex VERSION 1.0.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# 设置Qt6
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+
+# 查找依赖
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui Concurrent)
+find_package(OpenCV REQUIRED)
+
+# ONNX Runtime 配置
+set(ONNXRUNTIME_ROOT "C:/onnxruntime" CACHE PATH "Path to ONNX Runtime")
+if(EXISTS ${ONNXRUNTIME_ROOT})
+    include_directories(${ONNXRUNTIME_ROOT}/include)
+    link_directories(${ONNXRUNTIME_ROOT}/lib)
+    message(STATUS "Found ONNX Runtime at: ${ONNXRUNTIME_ROOT}")
+else()
+    message(WARNING "ONNX Runtime not found at ${ONNXRUNTIME_ROOT}")
+endif()
+
+# FAISS 配置
+set(FAISS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/third_party/faiss" CACHE PATH "Path to FAISS")
+if(EXISTS ${FAISS_ROOT})
+    include_directories(${FAISS_ROOT}/include)
+    link_directories(${FAISS_ROOT}/lib)
+    message(STATUS "Found FAISS at: ${FAISS_ROOT}")
+endif()
+
+# 包含目录
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/gui
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
+    ${OpenCV_INCLUDE_DIRS}
+)
+
+# 源文件
+set(CORE_SOURCES
+    src/core/clip_encoder.cpp
+    src/core/cn_clip_encoder.cpp
+    src/core/faiss_index.cpp
+    src/core/image_processor.cpp
+    src/core/model_manager.cpp
+    src/core/ocr_model.cpp          # OCR 模型
+    src/core/blip_model.cpp          # BLIP 模型
+    src/core/vqa_model.cpp           # VQA 模型
+)
+
+set(GUI_SOURCES
+    src/gui/main_window.cpp
+    src/gui/search_widget.cpp
+    src/gui/gallery_widget.cpp
+    src/gui/index_widget.cpp
+    src/gui/ocr_widget.cpp           # OCR 界面
+    src/gui/caption_widget.cpp       # 图像描述界面
+    src/gui/vqa_widget.cpp           # VQA 界面
+)
+
+set(UTILS_SOURCES
+    src/utils/config.cpp
+    src/utils/logger.cpp
+    src/utils/thread_pool.cpp
+)
+
+# 头文件
+set(HEADERS
+    src/core/clip_encoder.h
+    src/core/cn_clip_encoder.h
+    src/core/faiss_index.h
+    src/core/image_processor.h
+    src/core/model_manager.h
+    src/core/ocr_model.h
+    src/core/blip_model.h
+    src/core/vqa_model.h
+    src/gui/main_window.h
+    src/gui/search_widget.h
+    src/gui/gallery_widget.h
+    src/gui/index_widget.h
+    src/gui/ocr_widget.h
+    src/gui/caption_widget.h
+    src/gui/vqa_widget.h
+    src/utils/config.h
+    src/utils/logger.h
+    src/utils/thread_pool.h
+)
+
+# 资源文件
+set(RESOURCES
+    resources/resources.qrc
+)
+
+# 创建可执行文件
+add_executable(${PROJECT_NAME}
+    src/main.cpp
+    ${CORE_SOURCES}
+    ${GUI_SOURCES}
+    ${UTILS_SOURCES}
+    ${HEADERS}
+    ${RESOURCES}
+)
+
+# 链接库
+target_link_libraries(${PROJECT_NAME}
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Gui
+    Qt6::Concurrent
+    ${OpenCV_LIBS}
+    onnxruntime
+)
+
+# Windows 特定配置
+if(WIN32)
+    # 链接Windows库
+    target_link_libraries(${PROJECT_NAME}
+        onnxruntime.dll
+        ws2_32
+        winmm
+    )
+
+    # 设置子系统为Windows（隐藏控制台）
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        WIN32_EXECUTABLE TRUE
+    )
+
+    # 复制DLL到输出目录
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${ONNXRUNTIME_ROOT}/bin/onnxruntime.dll"
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+    )
+
+    # 复制OpenCV DLL
+    foreach(opencv_lib ${OpenCV_LIBS})
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${OpenCV_BIN_DIR}/${opencv_lib}*.dll"
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        )
+    endforeach()
+endif()
+
+# 设置输出目录
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
+# 安装规则
+install(TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION bin
+)
+
+# 安装模型文件
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/assets/models/
+    DESTINATION bin/models
+    FILES_MATCHING
+    PATTERN "*.onnx"
+)
+
+# 打印配置信息
+message(STATUS "========================================")
+message(STATUS "VIndex Configuration:")
+message(STATUS "  Qt6 Version: ${Qt6_VERSION}")
+message(STATUS "  OpenCV Version: ${OpenCV_VERSION}")
+message(STATUS "  ONNX Runtime: ${ONNXRUNTIME_ROOT}")
+message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "========================================")

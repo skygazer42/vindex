@@ -58,6 +58,18 @@ assets/models/**/*.pth
 assets/models/**/*.pb
 assets/vocab/*.txt
 
+# Entire model directories (prevent accidental add of tokenizer/config/cache blobs)
+assets/models/**
+!assets/models/**/README.md
+!assets/models/**/.gitkeep
+
+# Local runtimes / downloads
+onnxruntime*.zip
+onnxruntime-sdk/
+
+# Local binaries
+*.exe
+
 # Logs
 *.log
 
