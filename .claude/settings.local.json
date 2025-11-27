@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(python export_clip_simple.py:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(cmake --build:*)"
     ],
     "deny": [],
     "ask": []
