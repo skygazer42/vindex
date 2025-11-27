@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python export_clip_simple.py:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

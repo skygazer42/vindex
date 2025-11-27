@@ -48,7 +48,7 @@ find_package(OpenCV REQUIRED COMPONENTS
 if(DEFINED ENV{ONNXRUNTIME_ROOT})
     set(ONNXRUNTIME_ROOT $ENV{ONNXRUNTIME_ROOT})
 elseif(WIN32)
-    set(ONNXRUNTIME_ROOT "C:/libs/onnxruntime-win-x64-1.16.0")
+    set(ONNXRUNTIME_ROOT "C:/onnxruntime")
 elseif(EXISTS "$ENV{HOME}/.local/onnxruntime")
     set(ONNXRUNTIME_ROOT "$ENV{HOME}/.local/onnxruntime")
 else()
