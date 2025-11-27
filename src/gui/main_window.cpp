@@ -9,10 +9,12 @@
 #include <QDesktopServices>
 #include <QUrl>
 #include <QProgressDialog>
+#include <QFile>
 #include <filesystem>
 #include "text_search_widget.h"
 #include "match_widget.h"
 #include "image_to_text_widget.h"
+#include "api_ai_widget.h"
 #include "caption_widget.h"
 #include "vqa_widget.h"
 #include "database_widget.h"
@@ -28,6 +30,9 @@ MainWindow::MainWindow(QWidget* parent)
 {
     setWindowTitle("VIndex - Visual Search Engine");
     setMinimumSize(1200, 800);
+
+    // 加载样式表
+    loadStyleSheet();
 
     // 加载设置
     loadSettings();
@@ -196,6 +201,9 @@ void MainWindow::initializeDatabase() {
         // 图搜文（示例语料）
         imageToTextTab_ = new ImageToTextWidget(modelManager_, this);
         tabWidget_->addTab(imageToTextTab_, "Image→Text");
+        // 远程 API（文生图 / 图生文 VQA）
+        apiTab_ = new ApiAIWidget(modelManager_, this);
+        tabWidget_->addTab(apiTab_, "API AI");
         // 图文匹配
         matchTab_ = new MatchWidget(modelManager_, this);
         tabWidget_->addTab(matchTab_, "Match");
@@ -413,6 +421,91 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     }
 
     event->accept();
+}
+
+void MainWindow::loadStyleSheet() {
+    // 尝试多个可能的样式表路径
+    QStringList stylePaths = {
+        "./resources/styles/modern.qss",
+        "../resources/styles/modern.qss",
+        ":/styles/modern.qss"
+    };
+
+    for (const QString& path : stylePaths) {
+        QFile styleFile(path);
+        if (styleFile.open(QFile::ReadOnly | QFile::Text)) {
+            QString styleSheet = QString::fromUtf8(styleFile.readAll());
+            qApp->setStyleSheet(styleSheet);
+            styleFile.close();
+            qDebug() << "Loaded style sheet from:" << path;
+            return;
+        }
+    }
+
+    // 如果找不到外部样式表，使用内置基础样式
+    QString fallbackStyle = R"(
+        * {
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+            font-size: 13px;
+        }
+        QMainWindow {
+            background-color: #f5f7fa;
+        }
+        QPushButton {
+            background-color: #409eff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            color: white;
+            font-weight: 500;
+        }
+        QPushButton:hover {
+            background-color: #66b1ff;
+        }
+        QPushButton:pressed {
+            background-color: #3a8ee6;
+        }
+        QPushButton:disabled {
+            background-color: #a0cfff;
+        }
+        QLineEdit, QTextEdit, QSpinBox {
+            background-color: white;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            padding: 6px 10px;
+        }
+        QLineEdit:focus, QTextEdit:focus, QSpinBox:focus {
+            border-color: #409eff;
+        }
+        QGroupBox {
+            background-color: white;
+            border: 1px solid #e4e7ed;
+            border-radius: 8px;
+            margin-top: 12px;
+            padding-top: 24px;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            left: 12px;
+            padding: 0 4px;
+        }
+        QTabWidget::pane {
+            background-color: white;
+            border: 1px solid #e4e7ed;
+            border-radius: 8px;
+        }
+        QTabBar::tab {
+            background-color: #f5f7fa;
+            border: 1px solid #e4e7ed;
+            padding: 8px 20px;
+            margin-right: 2px;
+        }
+        QTabBar::tab:selected {
+            background-color: white;
+            color: #409eff;
+        }
+    )";
+    qApp->setStyleSheet(fallbackStyle);
 }
 
 } // namespace gui

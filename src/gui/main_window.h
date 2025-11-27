@@ -20,6 +20,7 @@ class CaptionWidget;
 class VQAWidget;
 class DatabaseWidget;
 class ImageToTextWidget;
+class ApiAIWidget;
 
 /**
  * @brief 主窗口
@@ -56,6 +57,7 @@ private:
     void initializeDatabase();
     void saveSettings();
     void loadSettings();
+    void loadStyleSheet();
 
 private:
     // 核心组件
@@ -68,6 +70,7 @@ private:
     class TextSearchWidget* textSearchTab_;
     class MatchWidget* matchTab_;
     class ImageToTextWidget* imageToTextTab_;
+    class ApiAIWidget* apiTab_;
     class CaptionWidget* captionTab_;
     class VQAWidget* vqaTab_;
     class DatabaseWidget* databaseTab_;

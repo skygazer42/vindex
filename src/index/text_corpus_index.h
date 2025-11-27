@@ -40,7 +40,7 @@ public:
                                                 float threshold = 0.0f) const;
 
     bool ready() const { return ready_; }
-    size_t size() const { return entries_.size(); }
+    size_t size() const { return entryMap_.size(); }
 
 private:
     int dimension_;

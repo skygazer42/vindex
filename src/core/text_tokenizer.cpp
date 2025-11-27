@@ -333,7 +333,7 @@ bool TextTokenizer::isPunctuation(char32_t cp) const {
            (cp >= 0xFF00 && cp <= 0xFF65);   // Fullwidth ASCII variants
 }
 
-bool TextTokenizer::isChineseChar(uint32_t cp) const {
+bool TextTokenizer::isChineseChar(char32_t cp) const {
     // CJK Unified Ideographs
     if (cp >= 0x4E00 && cp <= 0x9FFF) return true;
     // CJK Unified Ideographs Extension A

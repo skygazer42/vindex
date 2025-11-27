@@ -42,7 +42,7 @@ std::string CaptionModel::generate(const cv::Mat& image, int /*maxLength*/) {
     std::vector<float> inputData = preprocessor_.preprocess(image);
     std::vector<int64_t> inputShape = preprocessor_.getInputShape();
 
-    Ort::MemoryInfo memInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+    Ort::MemoryInfo memInfo = Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemTypeDefault);
     Ort::Value inputTensor = Ort::Value::CreateTensor<float>(
         memInfo,
         inputData.data(),

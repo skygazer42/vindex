@@ -24,11 +24,12 @@ void MatchWidget::setupUI() {
     imageLabel_->setFixedSize(320, 320);
     imageLabel_->setAlignment(Qt::AlignCenter);
     imageLabel_->setStyleSheet(
-        "QLabel { background-color: #f5f5f5; border: 2px dashed #ccc; }"
+        "QLabel { background-color: #f5f7fa; border: 2px dashed #dcdfe6; border-radius: 8px; }"
     );
     imageLabel_->setText("No image selected");
 
     selectBtn_ = new QPushButton("Select Image", this);
+    selectBtn_->setObjectName("selectBtn");
     connect(selectBtn_, &QPushButton::clicked, this, &MatchWidget::onSelectImage);
 
     auto* imageLayout = new QVBoxLayout();
@@ -52,7 +53,10 @@ void MatchWidget::setupUI() {
     mainLayout->addLayout(topLayout);
 
     scoreLabel_ = new QLabel("Score: N/A", this);
-    scoreLabel_->setStyleSheet("QLabel { font-weight: bold; }");
+    scoreLabel_->setObjectName("scoreLabel");
+    scoreLabel_->setStyleSheet(
+        "QLabel { font-size: 18px; font-weight: bold; color: #409eff; padding: 16px; }"
+    );
     mainLayout->addWidget(scoreLabel_);
     mainLayout->addStretch();
 }
@@ -100,7 +104,13 @@ void MatchWidget::onCompute() {
 
         cv::Mat image = cv::imread(currentImagePath_.toStdString());
         float score = encoder.computeSimilarity(image, textEdit_->text().toStdString());
-        scoreLabel_->setText(QString("Score: %1").arg(score, 0, 'f', 3));
+        scoreLabel_->setText(QString("Score: %1").arg(score, 0, 'f', 4));
+
+        // 根据分数设置颜色
+        QString color = score > 0.3 ? "#67c23a" : (score > 0.15 ? "#e6a23c" : "#909399");
+        scoreLabel_->setStyleSheet(
+            QString("QLabel { font-size: 18px; font-weight: bold; color: %1; padding: 16px; }").arg(color)
+        );
 
     } catch (const std::exception& e) {
         showError(QString("Failed to compute: %1").arg(e.what()));

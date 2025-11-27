@@ -28,7 +28,7 @@ ClipEncoder::ClipEncoder(const std::string& visualModelPath,
                          const std::string& vocabPath,
                          int embeddingDim)
     : embeddingDim_(embeddingDim)
-    , memoryInfo_(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault))
+    , memoryInfo_(Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemTypeDefault))
 {
     // 初始化图像预处理器
     imagePreprocessor_ = std::make_unique<ImagePreprocessor>();

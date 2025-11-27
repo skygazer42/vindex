@@ -35,7 +35,7 @@ void ImageSearchWidget::setupUI() {
     queryImageLabel_->setAlignment(Qt::AlignCenter);
     queryImageLabel_->setScaledContents(true);
     queryImageLabel_->setStyleSheet(
-        "QLabel { background-color: #f5f5f5; border: 2px dashed #ccc; }"
+        "QLabel { background-color: #f5f7fa; border: 2px dashed #dcdfe6; border-radius: 8px; }"
     );
     queryImageLabel_->setText("No image selected\n\nClick 'Select Image' to choose");
     queryLayout->addWidget(queryImageLabel_);
@@ -47,12 +47,8 @@ void ImageSearchWidget::setupUI() {
 
     // 选择图像按钮
     selectImageBtn_ = new QPushButton("Select Image", this);
+    selectImageBtn_->setObjectName("selectImageBtn");
     selectImageBtn_->setMinimumHeight(40);
-    selectImageBtn_->setStyleSheet(
-        "QPushButton { background-color: #0066cc; color: white; "
-        "font-size: 14px; border-radius: 5px; }"
-        "QPushButton:hover { background-color: #0052a3; }"
-    );
     connect(selectImageBtn_, &QPushButton::clicked,
             this, &ImageSearchWidget::onSelectImage);
     controlLayout->addWidget(selectImageBtn_);
@@ -80,14 +76,9 @@ void ImageSearchWidget::setupUI() {
 
     // 搜索按钮
     searchBtn_ = new QPushButton("Search", this);
+    searchBtn_->setObjectName("searchBtn");
     searchBtn_->setMinimumHeight(40);
     searchBtn_->setEnabled(false);
-    searchBtn_->setStyleSheet(
-        "QPushButton { background-color: #28a745; color: white; "
-        "font-size: 14px; font-weight: bold; border-radius: 5px; }"
-        "QPushButton:hover { background-color: #218838; }"
-        "QPushButton:disabled { background-color: #ccc; }"
-    );
     connect(searchBtn_, &QPushButton::clicked,
             this, &ImageSearchWidget::onSearch);
     controlLayout->addWidget(searchBtn_);
@@ -101,7 +92,7 @@ void ImageSearchWidget::setupUI() {
     auto* statusLayout = new QHBoxLayout();
 
     statusLabel_ = new QLabel("Ready", this);
-    statusLabel_->setStyleSheet("QLabel { color: #666; }");
+    statusLabel_->setObjectName("statusLabel");
     statusLayout->addWidget(statusLabel_);
 
     progressBar_ = new QProgressBar(this);

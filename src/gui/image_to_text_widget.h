@@ -5,6 +5,7 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QLineEdit>
+#include <QTextEdit>
 #include <QListWidget>
 #include <QString>
 #include <opencv2/opencv.hpp>
@@ -27,6 +28,7 @@ public:
 private slots:
     void onSelectImage();
     void onSearch();
+    void onSearchText();
 
 private:
     void setupUI();
@@ -44,6 +46,8 @@ private:
     QPushButton* searchBtn_;
     QSpinBox* topKSpinBox_;
     QLineEdit* thresholdEdit_;
+    QTextEdit* textQueryEdit_;
+    QPushButton* searchTextBtn_;
     QLabel* statusLabel_;
     QListWidget* resultList_;
 
@@ -52,4 +56,3 @@ private:
 
 } // namespace gui
 } // namespace vindex
-

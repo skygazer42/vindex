@@ -65,7 +65,7 @@ std::string VqaModel::answer(const cv::Mat& image, const std::string& question) 
         attention[i] = tokens[i] == 0 ? 0 : 1;
     }
 
-    Ort::MemoryInfo memInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+    Ort::MemoryInfo memInfo = Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemTypeDefault);
     auto imageTensor = Ort::Value::CreateTensor<float>(
         memInfo,
         imageData.data(),

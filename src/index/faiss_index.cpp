@@ -1,4 +1,5 @@
 #include "faiss_index.h"
+#include <faiss/impl/IDSelector.h>
 #include <algorithm>
 #include <set>
 #include <iostream>

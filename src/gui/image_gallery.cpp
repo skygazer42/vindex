@@ -32,7 +32,9 @@ void ImageCard::setupUI() {
     imageLabel_->setAlignment(Qt::AlignCenter);
     imageLabel_->setFixedSize(200, 200);
     imageLabel_->setScaledContents(false);  // 不拉伸，保持宽高比
-    imageLabel_->setStyleSheet("QLabel { background-color: #f0f0f0; border: 1px solid #ccc; }");
+    imageLabel_->setStyleSheet(
+        "QLabel { background-color: #f5f7fa; border: 1px solid #e4e7ed; border-radius: 6px; }"
+    );
 
     QPixmap thumbnail = loadThumbnail(imagePath_, 200);
     if (!thumbnail.isNull()) {
@@ -46,7 +48,9 @@ void ImageCard::setupUI() {
     // 相似度分数
     scoreLabel_ = new QLabel(QString("Score: %1%").arg(score_ * 100, 0, 'f', 1), this);
     scoreLabel_->setAlignment(Qt::AlignCenter);
-    scoreLabel_->setStyleSheet("QLabel { color: #0066cc; font-weight: bold; }");
+    scoreLabel_->setStyleSheet(
+        "QLabel { color: #409eff; font-weight: bold; font-size: 13px; padding: 4px; }"
+    );
     layout->addWidget(scoreLabel_);
 
     // 附加信息
@@ -54,19 +58,22 @@ void ImageCard::setupUI() {
         infoLabel_ = new QLabel(label_, this);
         infoLabel_->setAlignment(Qt::AlignCenter);
         infoLabel_->setWordWrap(true);
-        infoLabel_->setStyleSheet("QLabel { color: #666; font-size: 11px; }");
+        infoLabel_->setStyleSheet(
+            "QLabel { color: #909399; font-size: 11px; padding: 2px; }"
+        );
         layout->addWidget(infoLabel_);
     }
 
     // 设置样式
     setStyleSheet(R"(
         ImageCard {
-            background-color: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 5px;
+            background-color: #ffffff;
+            border: 1px solid #e4e7ed;
+            border-radius: 8px;
         }
         ImageCard:hover {
-            border-color: #0066cc;
+            border: 2px solid #409eff;
+            background-color: #fafcff;
         }
     )");
 }
@@ -108,9 +115,9 @@ void ImageCard::mouseDoubleClickEvent(QMouseEvent* event) {
 void ImageCard::enterEvent(QEnterEvent* event) {
     setStyleSheet(R"(
         ImageCard {
-            background-color: #f9f9f9;
-            border: 2px solid #0066cc;
-            border-radius: 5px;
+            background-color: #fafcff;
+            border: 2px solid #409eff;
+            border-radius: 8px;
         }
     )");
     QWidget::enterEvent(event);
@@ -119,9 +126,9 @@ void ImageCard::enterEvent(QEnterEvent* event) {
 void ImageCard::leaveEvent(QEvent* event) {
     setStyleSheet(R"(
         ImageCard {
-            background-color: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 5px;
+            background-color: #ffffff;
+            border: 1px solid #e4e7ed;
+            border-radius: 8px;
         }
     )");
     QWidget::leaveEvent(event);

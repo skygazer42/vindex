@@ -15,12 +15,24 @@ option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
 # ============ 查找依赖 ============
 
-# Qt6
+# 添加 ~/.local 到搜索路径 (用于自定义安装的库)
+if(EXISTS "$ENV{HOME}/.local")
+    list(APPEND CMAKE_PREFIX_PATH "$ENV{HOME}/.local")
+endif()
+
+# Qt6 - 设置 Qt6 路径
+if(DEFINED ENV{Qt6_DIR})
+    set(CMAKE_PREFIX_PATH $ENV{Qt6_DIR} ${CMAKE_PREFIX_PATH})
+elseif(EXISTS "$ENV{HOME}/.local/Qt6/6.6.3/gcc_64")
+    set(CMAKE_PREFIX_PATH "$ENV{HOME}/.local/Qt6/6.6.3/gcc_64" ${CMAKE_PREFIX_PATH})
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS
     Core
     Gui
     Widgets
     Sql
+    Network
 )
 
 # OpenCV
@@ -37,6 +49,8 @@ if(DEFINED ENV{ONNXRUNTIME_ROOT})
     set(ONNXRUNTIME_ROOT $ENV{ONNXRUNTIME_ROOT})
 elseif(WIN32)
     set(ONNXRUNTIME_ROOT "C:/libs/onnxruntime-win-x64-1.16.0")
+elseif(EXISTS "$ENV{HOME}/.local/onnxruntime")
+    set(ONNXRUNTIME_ROOT "$ENV{HOME}/.local/onnxruntime")
 else()
     set(ONNXRUNTIME_ROOT "/usr/local/onnxruntime")
 endif()
@@ -68,6 +82,12 @@ endif()
 # SQLite3
 find_package(SQLite3 REQUIRED)
 
+# OpenMP (FAISS依赖)
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    message(STATUS "Found OpenMP: ${OpenMP_CXX_VERSION}")
+endif()
+
 # ============ 源文件 ============
 
 # 核心模块
@@ -79,6 +99,7 @@ set(CORE_SOURCES
     src/core/onnx_session.cpp
     src/core/caption_model.cpp
     src/core/vqa_model.cpp
+    src/utils/api_client.cpp
 )
 
 set(CORE_HEADERS
@@ -89,6 +110,7 @@ set(CORE_HEADERS
     src/core/onnx_session.h
     src/core/caption_model.h
     src/core/vqa_model.h
+    src/utils/api_client.h
 )
 
 # 索引模块
@@ -113,6 +135,7 @@ set(GUI_SOURCES
     src/gui/text_search_widget.cpp
     src/gui/match_widget.cpp
     src/gui/image_to_text_widget.cpp
+    src/gui/api_ai_widget.cpp
     src/gui/caption_widget.cpp
     src/gui/vqa_widget.cpp
     src/gui/database_widget.cpp
@@ -125,6 +148,7 @@ set(GUI_HEADERS
     src/gui/text_search_widget.h
     src/gui/match_widget.h
     src/gui/image_to_text_widget.h
+    src/gui/api_ai_widget.h
     src/gui/caption_widget.h
     src/gui/vqa_widget.h
     src/gui/database_widget.h
@@ -172,6 +196,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Gui
     Qt6::Widgets
     Qt6::Sql
+    Qt6::Network
     ${OpenCV_LIBS}
     SQLite::SQLite3
     onnxruntime
@@ -182,11 +207,12 @@ if(faiss_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE faiss)
 else()
     # 手动链接FAISS
-    if(WIN32)
-        target_link_libraries(${PROJECT_NAME} PRIVATE faiss)
-    else()
-        target_link_libraries(${PROJECT_NAME} PRIVATE faiss)
-    endif()
+    target_link_libraries(${PROJECT_NAME} PRIVATE faiss)
+endif()
+
+# OpenMP链接 (FAISS依赖)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
 # ============ 编译选项 ============
@@ -255,11 +281,12 @@ target_link_libraries(test_text_encoding PRIVATE
 if(faiss_FOUND)
     target_link_libraries(test_text_encoding PRIVATE faiss)
 else()
-    if(WIN32)
-        target_link_libraries(test_text_encoding PRIVATE faiss)
-    else()
-        target_link_libraries(test_text_encoding PRIVATE faiss)
-    endif()
+    target_link_libraries(test_text_encoding PRIVATE faiss)
+endif()
+
+# OpenMP链接 (FAISS依赖)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(test_text_encoding PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
 # ============ 打印配置信息 ============
