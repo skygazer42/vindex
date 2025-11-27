@@ -13,18 +13,25 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/C++-17-blue.svg" alt="C++17">
+  <img src="https://img.shields.io/badge/Qt-6.6-41CD52?logo=qt&logoColor=white" alt="Qt6">
+  <img src="https://img.shields.io/badge/OpenCV-4.10-5C3EE8?logo=opencv&logoColor=white" alt="OpenCV">
+  <img src="https://img.shields.io/badge/ONNX_Runtime-1.16-FF6F00?logo=onnx&logoColor=white" alt="ONNX Runtime">
+  <img src="https://img.shields.io/badge/FAISS-1.7-0467DF?logo=meta&logoColor=white" alt="FAISS">
+  <img src="https://img.shields.io/badge/CN--CLIP-ViT--B/16-FF4500" alt="CN-CLIP">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License">
+</p>
+
+<p align="center">
   <a href="#功能特性">功能特性</a> •
   <a href="#快速开始">快速开始</a> •
   <a href="#安装指南">安装指南</a> •
   <a href="#使用说明">使用说明</a> •
   <a href="#文档">文档</a>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/C++-17-blue.svg" alt="C++17">
-  <img src="https://img.shields.io/badge/Qt-6.6-green.svg" alt="Qt6">
-  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License">
-  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="Platform">
 </p>
 
 ---
@@ -252,18 +259,7 @@ vindex/
 
 ---
 
-## 技术栈
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Qt-6.6-41CD52?logo=qt&logoColor=white" alt="Qt">
-  <img src="https://img.shields.io/badge/OpenCV-4.10-5C3EE8?logo=opencv&logoColor=white" alt="OpenCV">
-  <img src="https://img.shields.io/badge/ONNX_Runtime-1.16-FF6F00?logo=onnx&logoColor=white" alt="ONNX Runtime">
-  <img src="https://img.shields.io/badge/FAISS-1.7-0467DF?logo=meta&logoColor=white" alt="FAISS">
-  <img src="https://img.shields.io/badge/SQLite-3.45-003B57?logo=sqlite&logoColor=white" alt="SQLite">
-  <img src="https://img.shields.io/badge/CN--CLIP-ViT--B/16-FF4500" alt="CN-CLIP">
-</p>
-
-### 数据流
+## 数据流
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
