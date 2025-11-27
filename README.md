@@ -71,7 +71,7 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-username/vindex.git
+ https://github.com/skygazer42/vindex.git
 cd vindex
 ```
 
