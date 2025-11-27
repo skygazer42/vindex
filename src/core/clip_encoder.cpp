@@ -4,6 +4,21 @@
 #include <numeric>
 #include <algorithm>
 #include <optional>
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+#ifdef _WIN32
+static std::wstring utf8ToWide(const std::string& path) {
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
+    if (size_needed <= 0) {
+        return std::wstring(path.begin(), path.end());
+    }
+    std::wstring wide(size_needed - 1, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, wide.data(), size_needed);
+    return wide;
+}
+#endif
 
 namespace vindex {
 namespace core {
@@ -61,7 +76,7 @@ void ClipEncoder::initializeSessions(const std::string& visualModelPath,
     // 加载视觉编码器
     if (!visualModelPath.empty()) {
 #ifdef _WIN32
-        std::wstring wPath(visualModelPath.begin(), visualModelPath.end());
+        std::wstring wPath = utf8ToWide(visualModelPath);
         visualSession_ = std::make_unique<Ort::Session>(*env_, wPath.c_str(), sessionOptions_);
 #else
         visualSession_ = std::make_unique<Ort::Session>(*env_, visualModelPath.c_str(), sessionOptions_);
@@ -88,7 +103,7 @@ void ClipEncoder::initializeSessions(const std::string& visualModelPath,
     // 加载文本编码器
     if (!textModelPath.empty()) {
 #ifdef _WIN32
-        std::wstring wPath(textModelPath.begin(), textModelPath.end());
+        std::wstring wPath = utf8ToWide(textModelPath);
         textSession_ = std::make_unique<Ort::Session>(*env_, wPath.c_str(), sessionOptions_);
 #else
         textSession_ = std::make_unique<Ort::Session>(*env_, textModelPath.c_str(), sessionOptions_);
@@ -262,17 +277,8 @@ std::vector<float> ClipEncoder::runTextInference(const std::vector<int64_t>& tex
     }
 
     // 确定批次大小
-    int batchSize = textTokens.size() / textTokenizer_->getContextLength();
-    std::vector<int64_t> inputShape = {batchSize, textTokenizer_->getContextLength()};
-
-    // 创建输入tensor
-    Ort::Value inputTensor = Ort::Value::CreateTensor<int64_t>(
-        memoryInfo_,
-        const_cast<int64_t*>(textTokens.data()),
-        textTokens.size(),
-        inputShape.data(),
-        inputShape.size()
-    );
+    const size_t batchSize = textTokens.size() / static_cast<size_t>(textTokenizer_->getContextLength());
+    std::vector<int64_t> inputShape = {static_cast<int64_t>(batchSize), textTokenizer_->getContextLength()};
 
     // 注意：文本模型可能需要 attention_mask，按名称自动匹配
     std::vector<Ort::Value> inputs;
@@ -297,49 +303,85 @@ std::vector<float> ClipEncoder::runTextInference(const std::vector<int64_t>& tex
         attnName = textInputNames_[1];
     }
 
-    std::optional<Ort::Value> attnTensorOpt;
-    if (needAttn) {
-        std::vector<int64_t> attention(textTokens.size(), 0);
+    // 创建 attention 向量（需保证生命周期覆盖 Run 调用）
+    std::vector<int64_t> attention;
+    auto makeIdTensor = [&]() {
+        return Ort::Value::CreateTensor<int64_t>(
+            memoryInfo_,
+            const_cast<int64_t*>(textTokens.data()),
+            textTokens.size(),
+            inputShape.data(),
+            inputShape.size()
+        );
+    };
+    auto makeAttnTensor = [&]() -> std::optional<Ort::Value> {
+        if (!needAttn) return std::nullopt;
+        attention.assign(textTokens.size(), 0);
         for (size_t i = 0; i < textTokens.size(); ++i) {
             attention[i] = textTokens[i] == 0 ? 0 : 1;
         }
-        attnTensorOpt = Ort::Value::CreateTensor<int64_t>(
+        return Ort::Value::CreateTensor<int64_t>(
             memoryInfo_,
             attention.data(),
             attention.size(),
             inputShape.data(),
             inputShape.size()
         );
-    }
+    };
 
-    for (const char* name : textInputNames_) {
-        if (name == idName) {
-            inputNames.push_back(name);
-            inputs.emplace_back(std::move(inputTensor));
-        } else if (needAttn && name == attnName && attnTensorOpt.has_value()) {
-            inputNames.push_back(name);
-            inputs.emplace_back(std::move(attnTensorOpt.value()));
+    auto tryMatchByName = [&]() -> bool {
+        if (idName.empty()) return false;
+        if (needAttn && attnName.empty()) return false;
+
+        inputNames.clear();
+        inputs.clear();
+
+        for (const char* name : textInputNames_) {
+            if (name == idName) {
+                inputNames.push_back(name);
+                inputs.emplace_back(makeIdTensor());
+            } else if (needAttn && name == attnName) {
+                auto attnTensor = makeAttnTensor();
+                if (attnTensor.has_value()) {
+                    inputNames.push_back(name);
+                    inputs.emplace_back(std::move(attnTensor.value()));
+                }
+            }
         }
-    }
 
-    // 回退：如果匹配数量不一致，按顺序提供 input_ids + attention_mask（若需要）
-    if (inputNames.size() != textInputNames_.size()) {
+        return !inputNames.empty() && inputNames.size() == (needAttn ? 2 : 1);
+    };
+
+    bool matched = tryMatchByName();
+
+    // 回退：如果命名匹配失败，按顺序提供 input_ids + attention_mask（若需要）
+    if (!matched) {
         inputNames.clear();
         inputs.clear();
         if (!textInputNames_.empty()) {
             inputNames.push_back(textInputNames_[0]);
-            inputs.emplace_back(std::move(inputTensor));
+            inputs.emplace_back(makeIdTensor());
         }
-        if (needAttn && attnTensorOpt.has_value() && textInputNames_.size() > 1) {
-            inputNames.push_back(textInputNames_[1]);
-            inputs.emplace_back(std::move(attnTensorOpt.value()));
+        if (needAttn && textInputNames_.size() > 1) {
+            auto attnTensor = makeAttnTensor();
+            if (attnTensor.has_value()) {
+                inputNames.push_back(textInputNames_[1]);
+                inputs.emplace_back(std::move(attnTensor.value()));
+            }
         }
     }
 
     // 最终兜底：至少传入 input_ids
     if (inputNames.empty()) {
         inputNames = textInputNames_;
-        inputs.emplace_back(std::move(inputTensor));
+        inputs.clear();
+        inputs.emplace_back(makeIdTensor());
+        if (needAttn) {
+            auto attnTensor = makeAttnTensor();
+            if (attnTensor.has_value()) {
+                inputs.emplace_back(std::move(attnTensor.value()));
+            }
+        }
     }
 
     // 运行推理

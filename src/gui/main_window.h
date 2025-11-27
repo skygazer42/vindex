@@ -5,7 +5,6 @@
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStatusBar>
-#include <QProgressDialog>
 #include <memory>
 
 #include "image_search_widget.h"
@@ -70,9 +69,6 @@ private:
     class CaptionWidget* captionTab_;
     class VQAWidget* vqaTab_;
     class DatabaseWidget* databaseTab_;
-
-    // 对话框
-    QProgressDialog* loadingDialog_;
 
     // 状态栏
     QLabel* statusLabel_;

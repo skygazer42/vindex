@@ -279,8 +279,10 @@ ImageRecord DatabaseManager::getById(int64_t id) {
 
     if (sqlite3_step(stmt) == SQLITE_ROW) {
         record.id = sqlite3_column_int64(stmt, 0);
-        record.filePath = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-        record.fileName = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+        const unsigned char* pathPtr = sqlite3_column_text(stmt, 1);
+        const unsigned char* namePtr = sqlite3_column_text(stmt, 2);
+        record.filePath = pathPtr ? reinterpret_cast<const char*>(pathPtr) : "";
+        record.fileName = namePtr ? reinterpret_cast<const char*>(namePtr) : "";
 
         const char* category = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
         record.category = category ? category : "";
@@ -328,8 +330,10 @@ std::vector<ImageRecord> DatabaseManager::listAll(int offset, int limit) {
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         ImageRecord record;
         record.id = sqlite3_column_int64(stmt, 0);
-        record.filePath = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-        record.fileName = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+        const unsigned char* pathPtr = sqlite3_column_text(stmt, 1);
+        const unsigned char* namePtr = sqlite3_column_text(stmt, 2);
+        record.filePath = pathPtr ? reinterpret_cast<const char*>(pathPtr) : "";
+        record.fileName = namePtr ? reinterpret_cast<const char*>(namePtr) : "";
 
         const char* category = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
         record.category = category ? category : "";
@@ -368,9 +372,13 @@ std::vector<ImageRecord> DatabaseManager::getByCategory(const std::string& categ
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         ImageRecord record;
         record.id = sqlite3_column_int64(stmt, 0);
-        record.filePath = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-        record.fileName = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
-        record.category = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
+        const unsigned char* pathPtr = sqlite3_column_text(stmt, 1);
+        const unsigned char* namePtr = sqlite3_column_text(stmt, 2);
+        record.filePath = pathPtr ? reinterpret_cast<const char*>(pathPtr) : "";
+        record.fileName = namePtr ? reinterpret_cast<const char*>(namePtr) : "";
+
+        const char* categoryPtr = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
+        record.category = categoryPtr ? categoryPtr : "";
 
         const char* desc = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
         record.description = desc ? desc : "";
@@ -407,8 +415,10 @@ std::vector<ImageRecord> DatabaseManager::searchByFileName(const std::string& ke
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         ImageRecord record;
         record.id = sqlite3_column_int64(stmt, 0);
-        record.filePath = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
-        record.fileName = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+        const unsigned char* pathPtr = sqlite3_column_text(stmt, 1);
+        const unsigned char* namePtr = sqlite3_column_text(stmt, 2);
+        record.filePath = pathPtr ? reinterpret_cast<const char*>(pathPtr) : "";
+        record.fileName = namePtr ? reinterpret_cast<const char*>(namePtr) : "";
 
         const char* category = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
         record.category = category ? category : "";

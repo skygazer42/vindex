@@ -46,15 +46,28 @@ bool FaissIndex::load(const std::string& indexPath) {
             return false;
         }
 
-        // 替换当前索引
-        baseIndex_.reset(dynamic_cast<faiss::IndexFlatL2*>(idMapIndex->index));
+        // IndexIDMap 默认拥有内部索引，避免 double-free：将所有权转移给 baseIndex_
+        auto* flatIndex = dynamic_cast<faiss::IndexFlatL2*>(idMapIndex->index);
+        if (!flatIndex) {
+            delete loadedIndex;
+            std::cerr << "Error: Loaded index base type is not IndexFlatL2" << std::endl;
+            return false;
+        }
+
+        // 由 baseIndex_ 管理内部索引生命周期，IndexIDMap 不再删除它
+        idMapIndex->own_fields = false;
+        baseIndex_.reset(flatIndex);
         index_.reset(idMapIndex);
 
         // 更新nextId_（找到最大ID + 1）
         nextId_ = 0;
+        idSet_.clear();
         if (index_->ntotal > 0) {
-            // FAISS不提供直接获取所有ID的方法，所以使用保守策略
-            nextId_ = static_cast<int64_t>(index_->ntotal);
+            // IndexIDMap 存储 id_map，直接读取以恢复 nextId_ 与集合
+            for (faiss::idx_t id : idMapIndex->id_map) {
+                idSet_.insert(static_cast<int64_t>(id));
+                nextId_ = std::max(nextId_, static_cast<int64_t>(id) + 1);
+            }
         }
 
         std::cout << "Loaded index with " << size() << " vectors" << std::endl;
@@ -83,6 +96,7 @@ void FaissIndex::clear() {
     baseIndex_ = std::make_unique<faiss::IndexFlatL2>(dimension_);
     index_ = std::make_unique<faiss::IndexIDMap>(baseIndex_.get());
     nextId_ = 0;
+    idSet_.clear();
 }
 
 // ==================== 向量操作 ====================
@@ -97,6 +111,7 @@ int64_t FaissIndex::add(const std::vector<float>& vector, int64_t id) {
 
     // 添加到索引
     index_->add_with_ids(1, vector.data(), &id);
+    idSet_.insert(id);
 
     return id;
 }
@@ -135,12 +150,16 @@ void FaissIndex::addBatch(const std::vector<std::vector<float>>& vectors,
 
     // 批量添加
     index_->add_with_ids(n, flatVectors.data(), ids.data());
+    idSet_.insert(ids.begin(), ids.end());
 }
 
 bool FaissIndex::remove(int64_t id) {
     try {
         faiss::IDSelectorBatch selector(1, &id);
         size_t removedCount = index_->remove_ids(selector);
+        if (removedCount > 0) {
+            idSet_.erase(id);
+        }
         return removedCount > 0;
     } catch (const std::exception& e) {
         std::cerr << "Failed to remove ID " << id << ": " << e.what() << std::endl;
@@ -155,7 +174,13 @@ size_t FaissIndex::removeBatch(const std::vector<int64_t>& ids) {
 
     try {
         faiss::IDSelectorBatch selector(ids.size(), ids.data());
-        return index_->remove_ids(selector);
+        size_t removed = index_->remove_ids(selector);
+        if (removed > 0) {
+            for (int64_t id : ids) {
+                idSet_.erase(id);
+            }
+        }
+        return removed;
     } catch (const std::exception& e) {
         std::cerr << "Failed to remove IDs: " << e.what() << std::endl;
         return 0;
@@ -269,21 +294,7 @@ size_t FaissIndex::size() const {
 }
 
 bool FaissIndex::contains(int64_t id) const {
-    // FAISS没有直接的contains方法，使用搜索验证
-    // 这是一个低效的实现，实际使用中应该维护一个ID集合
-    if (empty()) {
-        return false;
-    }
-
-    // 创建一个随机查询向量（实际应该使用ID映射表）
-    std::vector<float> dummyQuery(dimension_, 0.0f);
-    std::vector<float> distances(size());
-    std::vector<int64_t> labels(size());
-
-    index_->search(1, dummyQuery.data(), size(),
-                  distances.data(), labels.data());
-
-    return std::find(labels.begin(), labels.end(), id) != labels.end();
+    return idSet_.find(id) != idSet_.end();
 }
 
 // ==================== 私有方法 ====================

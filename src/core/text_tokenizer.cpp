@@ -5,8 +5,6 @@
 #include <stdexcept>
 #include <cctype>
 #include <locale>
-#include <codecvt>
-#include <cwctype>
 
 namespace vindex {
 namespace core {
@@ -76,10 +74,10 @@ bool isWhitespace(uint32_t cp) {
 TextTokenizer::TextTokenizer(const std::string& vocabPath, int contextLength, bool doLowerCase)
     : contextLength_(contextLength)
     , vocabSize_(0)
-    , padToken_(0)
-    , unkToken_(100)
-    , clsToken_(101)
-    , sepToken_(102)
+    , padToken_(-1)
+    , unkToken_(-1)
+    , clsToken_(-1)
+    , sepToken_(-1)
     , doLowerCase_(doLowerCase) {
     loadVocabulary(vocabPath);
 }
@@ -125,6 +123,13 @@ void TextTokenizer::loadVocabulary(const std::string& vocabPath) {
     if (vocab_.empty()) {
         throw std::runtime_error("Vocabulary is empty or invalid");
     }
+
+    // 确保必需的特殊符号存在
+    if (clsToken_ < 0 || sepToken_ < 0) {
+        throw std::runtime_error("Vocabulary missing required [CLS]/[SEP] tokens");
+    }
+    if (padToken_ < 0) padToken_ = 0;
+    if (unkToken_ < 0) unkToken_ = padToken_;
 }
 
 std::vector<int64_t> TextTokenizer::encode(const std::string& text) {

@@ -89,9 +89,18 @@ public:
 
     // ==================== 配置获取 ====================
 
-    std::string getModelPath() const { return modelPath_; }
-    std::string getVocabPath() const { return vocabPath_; }
-    int getEmbeddingDim() const { return embeddingDim_; }
+    std::string getModelPath() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return modelPath_;
+    }
+    std::string getVocabPath() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return vocabPath_;
+    }
+    int getEmbeddingDim() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return embeddingDim_;
+    }
 
 private:
     ModelManager();

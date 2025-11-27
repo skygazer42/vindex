@@ -8,6 +8,7 @@
 #include <QApplication>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QProgressDialog>
 #include <filesystem>
 #include "text_search_widget.h"
 #include "match_widget.h"
@@ -23,7 +24,6 @@ namespace gui {
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
     , modelManager_(&core::ModelManager::instance())
-    , loadingDialog_(nullptr)
 {
     setWindowTitle("VIndex - Visual Search Engine");
     setMinimumSize(1200, 800);
@@ -121,11 +121,11 @@ void MainWindow::setupStatusBar() {
 }
 
 void MainWindow::loadModels() {
-    loadingDialog_ = new QProgressDialog("Loading models...", QString(), 0, 0, this);
-    loadingDialog_->setWindowModality(Qt::WindowModal);
-    loadingDialog_->setCancelButton(nullptr);
-    loadingDialog_->setMinimumDuration(0);
-    loadingDialog_->show();
+    QProgressDialog loadingDialog("Loading models...", QString(), 0, 0, this);
+    loadingDialog.setWindowModality(Qt::WindowModal);
+    loadingDialog.setCancelButton(nullptr);
+    loadingDialog.setMinimumDuration(0);
+    loadingDialog.show();
 
     QApplication::processEvents();
 
@@ -162,9 +162,7 @@ void MainWindow::loadModels() {
         );
     }
 
-    loadingDialog_->close();
-    delete loadingDialog_;
-    loadingDialog_ = nullptr;
+    loadingDialog.close();
 }
 
 void MainWindow::initializeDatabase() {

@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include <stdexcept>
+#include <unordered_set>
 
 namespace vindex {
 namespace index {
@@ -164,6 +165,7 @@ private:
     std::unique_ptr<faiss::IndexIDMap> index_;     // 支持自定义ID的索引
     int64_t nextId_;                               // 下一个自动分配的ID
     bool useGPU_;                                  // 是否使用GPU
+    std::unordered_set<int64_t> idSet_;            // 已存在ID集合，O(1) contains
 };
 
 } // namespace index
