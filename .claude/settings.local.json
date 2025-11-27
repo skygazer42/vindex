@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python export_clip_simple.py:*)"
+      "Bash(python export_clip_simple.py:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
