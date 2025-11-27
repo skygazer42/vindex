@@ -1,0 +1,13 @@
+{
+  "model_type": "pp-ocrv4",
+  "det_model": "ch_PP-OCRv4_det_infer.onnx",
+  "rec_model": "ch_PP-OCRv4_rec_infer.onnx",
+  "dict_file": "ppocr_keys_v1.txt",
+  "det_db_thresh": 0.3,
+  "det_db_box_thresh": 0.5,
+  "det_db_unclip_ratio": 1.6,
+  "rec_img_height": 48,
+  "rec_img_width": 320,
+  "max_side_len": 960,
+  "use_angle_cls": false
+}
