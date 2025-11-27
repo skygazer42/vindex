@@ -72,7 +72,7 @@
 
 ```bash
  https://github.com/skygazer42/vindex.git
-cd vindex
+ cd vindex
 ```
 
 ### 2. 安装依赖
