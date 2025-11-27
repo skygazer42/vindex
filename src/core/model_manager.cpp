@@ -91,6 +91,19 @@ bool ModelManager::hasVqaModel() const {
     return vqaModel_ != nullptr;
 }
 
+OcrModel& ModelManager::ocrModel() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!ocrModel_) {
+        initializeOcrModel();
+    }
+    return *ocrModel_;
+}
+
+bool ModelManager::hasOcrModel() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return ocrModel_ != nullptr;
+}
+
 // ==================== 预加载 ====================
 
 bool ModelManager::preloadAll() {
@@ -110,6 +123,9 @@ bool ModelManager::preloadAll() {
         if (!vqaModel_) {
             initializeVqaModel();
         }
+        if (!ocrModel_) {
+            initializeOcrModel();
+        }
 
         std::cout << "All models loaded successfully!" << std::endl;
         return true;
@@ -128,6 +144,7 @@ void ModelManager::releaseAll() {
     clipEncoder_.reset();
     captionModel_.reset();
     vqaModel_.reset();
+    ocrModel_.reset();
 
     std::cout << "All models released!" << std::endl;
 }
@@ -247,6 +264,29 @@ void ModelManager::initializeVqaModel() {
         std::cout << "BLIP VQA model initialized successfully!" << std::endl;
     } else {
         std::cout << "BLIP VQA model partially loaded (some components missing)" << std::endl;
+    }
+}
+
+void ModelManager::initializeOcrModel() {
+    // OCR 模型目录
+    fs::path ocrDir = fs::path(modelPath_) / "ocr";
+
+    // 检查是否存在 OCR 目录和必要的模型文件
+    fs::path detModel = ocrDir / "ch_PP-OCRv4_det_infer.onnx";
+    fs::path recModel = ocrDir / "ch_PP-OCRv4_rec_infer.onnx";
+
+    if (!fs::exists(ocrDir) || !fs::exists(detModel)) {
+        std::cout << "OCR model not found. Please run:" << std::endl;
+        std::cout << "  cd scripts && python download_ocr_models.py --output ../assets/models/ocr" << std::endl;
+        return;
+    }
+
+    ocrModel_ = std::make_unique<OcrModel>(env_, ocrDir.string());
+
+    if (ocrModel_->loaded()) {
+        std::cout << "OCR model initialized successfully!" << std::endl;
+    } else {
+        std::cout << "OCR model partially loaded (some components missing)" << std::endl;
     }
 }
 

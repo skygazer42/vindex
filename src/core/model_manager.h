@@ -3,6 +3,7 @@
 #include "clip_encoder.h"
 #include "caption_model.h"
 #include "vqa_model.h"
+#include "ocr_model.h"
 #include <onnxruntime_cxx_api.h>
 #include <memory>
 #include <string>
@@ -16,7 +17,9 @@ namespace core {
  *
  * 负责管理应用中所有的模型：
  * - CLIP编码器（图搜图、文搜图）
- * - 未来扩展：Caption模型、VQA模型等
+ * - Caption模型（图像描述）
+ * - VQA模型（视觉问答）
+ * - OCR模型（文字识别）
  *
  * 使用懒加载模式，仅在需要时加载模型
  */
@@ -63,16 +66,22 @@ public:
     bool hasClipEncoder() const;
 
     /**
-     * @brief 获取图生文模型（懒加载，占位）
+     * @brief 获取图生文模型（懒加载）
      */
     CaptionModel& captionModel();
     bool hasCaptionModel() const;
 
     /**
-     * @brief 获取VQA模型（懒加载，占位）
+     * @brief 获取VQA模型（懒加载）
      */
     VqaModel& vqaModel();
     bool hasVqaModel() const;
+
+    /**
+     * @brief 获取OCR模型（懒加载）
+     */
+    OcrModel& ocrModel();
+    bool hasOcrModel() const;
 
     // ==================== 预加载 ====================
 
@@ -107,11 +116,12 @@ private:
     ~ModelManager() = default;
 
     /**
-     * @brief 初始化CLIP编码器
+     * @brief 初始化各模型
      */
     void initializeClipEncoder();
     void initializeCaptionModel();
     void initializeVqaModel();
+    void initializeOcrModel();
 
 private:
     // 模型路径配置
@@ -123,6 +133,7 @@ private:
     std::unique_ptr<ClipEncoder> clipEncoder_;
     std::unique_ptr<CaptionModel> captionModel_;
     std::unique_ptr<VqaModel> vqaModel_;
+    std::unique_ptr<OcrModel> ocrModel_;
     Ort::Env env_;
 
     // 线程安全
