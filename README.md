@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/logo.png" alt="VIndex Logo" width="120" height="120">
+  <img src="resources/data/logo.jpg" alt="VIndex Logo" width="160" height="160">
 </p>
 
 <h1 align="center">VIndex</h1>
@@ -59,6 +59,10 @@
 ---
 
 ## 界面预览
+
+<p align="center">
+  <img src="resources/data/background.png" alt="App Background" width="100%">
+</p>
 
 <p align="center">
   <img src="docs/images/screenshot_image_search.png" alt="Image Search" width="45%">
