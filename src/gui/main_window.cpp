@@ -21,6 +21,8 @@
 
 namespace fs = std::filesystem;
 
+using vindex::utils::Translator;
+
 namespace vindex {
 namespace gui {
 
@@ -28,13 +30,13 @@ MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
     , modelManager_(&core::ModelManager::instance())
 {
-    setWindowTitle("VIndex - Visual Search Engine");
+    setWindowTitle(TR("VIndex - Visual Search Engine"));
     setMinimumSize(1200, 800);
 
     // 加载样式表
     loadStyleSheet();
 
-    // 加载设置
+    // 加载设置（包括语言设置）
     loadSettings();
 
     // 初始化UI
@@ -42,6 +44,10 @@ MainWindow::MainWindow(QWidget* parent)
     setupMenuBar();
     setupToolBar();
     setupStatusBar();
+
+    // 连接语言切换信号
+    connect(&Translator::instance(), &Translator::languageChanged,
+            this, &MainWindow::onLanguageChanged);
 
     // 初始化后端
     loadModels();
@@ -63,71 +69,154 @@ void MainWindow::setupUI() {
 
 void MainWindow::setupMenuBar() {
     // 文件菜单
-    QMenu* fileMenu = menuBar()->addMenu("&File");
+    fileMenu_ = menuBar()->addMenu(TR("&File"));
 
-    QAction* importAction = new QAction("&Import Folder...", this);
-    importAction->setShortcut(QKeySequence("Ctrl+I"));
-    connect(importAction, &QAction::triggered, this, &MainWindow::onImportFolder);
-    fileMenu->addAction(importAction);
+    importAction_ = new QAction(TR("&Import Folder..."), this);
+    importAction_->setShortcut(QKeySequence("Ctrl+I"));
+    connect(importAction_, &QAction::triggered, this, &MainWindow::onImportFolder);
+    fileMenu_->addAction(importAction_);
 
-    fileMenu->addSeparator();
+    fileMenu_->addSeparator();
 
-    QAction* exitAction = new QAction("E&xit", this);
-    exitAction->setShortcut(QKeySequence("Ctrl+Q"));
-    connect(exitAction, &QAction::triggered, this, &QMainWindow::close);
-    fileMenu->addAction(exitAction);
+    exitAction_ = new QAction(TR("E&xit"), this);
+    exitAction_->setShortcut(QKeySequence("Ctrl+Q"));
+    connect(exitAction_, &QAction::triggered, this, &QMainWindow::close);
+    fileMenu_->addAction(exitAction_);
 
     // 数据库菜单
-    QMenu* databaseMenu = menuBar()->addMenu("&Database");
+    databaseMenu_ = menuBar()->addMenu(TR("&Database"));
 
-    QAction* rebuildAction = new QAction("&Rebuild Index", this);
-    connect(rebuildAction, &QAction::triggered, this, &MainWindow::onRebuildIndex);
-    databaseMenu->addAction(rebuildAction);
+    rebuildAction_ = new QAction(TR("&Rebuild Index"), this);
+    connect(rebuildAction_, &QAction::triggered, this, &MainWindow::onRebuildIndex);
+    databaseMenu_->addAction(rebuildAction_);
 
-    QAction* statsAction = new QAction("&Statistics", this);
-    connect(statsAction, &QAction::triggered, this, &MainWindow::onDatabaseStats);
-    databaseMenu->addAction(statsAction);
+    statsAction_ = new QAction(TR("&Statistics"), this);
+    connect(statsAction_, &QAction::triggered, this, &MainWindow::onDatabaseStats);
+    databaseMenu_->addAction(statsAction_);
 
     // 设置菜单
-    QMenu* settingsMenu = menuBar()->addMenu("&Settings");
+    settingsMenu_ = menuBar()->addMenu(TR("&Settings"));
 
-    QAction* preferencesAction = new QAction("&Preferences...", this);
-    connect(preferencesAction, &QAction::triggered, this, &MainWindow::onSettings);
-    settingsMenu->addAction(preferencesAction);
+    preferencesAction_ = new QAction(TR("&Preferences..."), this);
+    connect(preferencesAction_, &QAction::triggered, this, &MainWindow::onSettings);
+    settingsMenu_->addAction(preferencesAction_);
+
+    settingsMenu_->addSeparator();
+
+    // 语言子菜单
+    languageMenu_ = settingsMenu_->addMenu(TR("&Language"));
+
+    QActionGroup* langGroup = new QActionGroup(this);
+    langGroup->setExclusive(true);
+
+    englishAction_ = new QAction("English", this);
+    englishAction_->setCheckable(true);
+    englishAction_->setChecked(Translator::instance().currentLanguage() == Translator::English);
+    connect(englishAction_, &QAction::triggered, this, &MainWindow::onSwitchToEnglish);
+    langGroup->addAction(englishAction_);
+    languageMenu_->addAction(englishAction_);
+
+    chineseAction_ = new QAction("中文", this);
+    chineseAction_->setCheckable(true);
+    chineseAction_->setChecked(Translator::instance().currentLanguage() == Translator::Chinese);
+    connect(chineseAction_, &QAction::triggered, this, &MainWindow::onSwitchToChinese);
+    langGroup->addAction(chineseAction_);
+    languageMenu_->addAction(chineseAction_);
 
     // 帮助菜单
-    QMenu* helpMenu = menuBar()->addMenu("&Help");
+    helpMenu_ = menuBar()->addMenu(TR("&Help"));
 
-    QAction* aboutAction = new QAction("&About", this);
-    connect(aboutAction, &QAction::triggered, this, &MainWindow::onAbout);
-    helpMenu->addAction(aboutAction);
+    aboutAction_ = new QAction(TR("&About"), this);
+    connect(aboutAction_, &QAction::triggered, this, &MainWindow::onAbout);
+    helpMenu_->addAction(aboutAction_);
 }
 
 void MainWindow::setupToolBar() {
-    QToolBar* toolbar = addToolBar("Main Toolbar");
-    toolbar->setMovable(false);
+    toolbar_ = addToolBar(TR("Main Toolbar"));
+    toolbar_->setMovable(false);
 
-    QAction* importAction = new QAction("Import Folder", this);
-    connect(importAction, &QAction::triggered, this, &MainWindow::onImportFolder);
-    toolbar->addAction(importAction);
+    toolbarImportAction_ = new QAction(TR("Import Folder"), this);
+    connect(toolbarImportAction_, &QAction::triggered, this, &MainWindow::onImportFolder);
+    toolbar_->addAction(toolbarImportAction_);
 
-    toolbar->addSeparator();
+    toolbar_->addSeparator();
 
-    QAction* rebuildAction = new QAction("Rebuild Index", this);
-    connect(rebuildAction, &QAction::triggered, this, &MainWindow::onRebuildIndex);
-    toolbar->addAction(rebuildAction);
+    toolbarRebuildAction_ = new QAction(TR("Rebuild Index"), this);
+    connect(toolbarRebuildAction_, &QAction::triggered, this, &MainWindow::onRebuildIndex);
+    toolbar_->addAction(toolbarRebuildAction_);
 }
 
 void MainWindow::setupStatusBar() {
-    statusLabel_ = new QLabel("Ready", this);
+    statusLabel_ = new QLabel(TR("Ready"), this);
     statusBar()->addWidget(statusLabel_);
 
-    dbStatsLabel_ = new QLabel("Images: 0", this);
+    dbStatsLabel_ = new QLabel(TR("Images: %1").arg(0), this);
     statusBar()->addPermanentWidget(dbStatsLabel_);
 }
 
+void MainWindow::onSwitchToEnglish() {
+    Translator::instance().setLanguage(Translator::English);
+}
+
+void MainWindow::onSwitchToChinese() {
+    Translator::instance().setLanguage(Translator::Chinese);
+}
+
+void MainWindow::onLanguageChanged() {
+    retranslateUI();
+}
+
+void MainWindow::retranslateUI() {
+    // 更新窗口标题
+    setWindowTitle(TR("VIndex - Visual Search Engine"));
+
+    // 更新菜单
+    fileMenu_->setTitle(TR("&File"));
+    importAction_->setText(TR("&Import Folder..."));
+    exitAction_->setText(TR("E&xit"));
+
+    databaseMenu_->setTitle(TR("&Database"));
+    rebuildAction_->setText(TR("&Rebuild Index"));
+    statsAction_->setText(TR("&Statistics"));
+
+    settingsMenu_->setTitle(TR("&Settings"));
+    preferencesAction_->setText(TR("&Preferences..."));
+    languageMenu_->setTitle(TR("&Language"));
+
+    helpMenu_->setTitle(TR("&Help"));
+    aboutAction_->setText(TR("&About"));
+
+    // 更新工具栏
+    toolbar_->setWindowTitle(TR("Main Toolbar"));
+    toolbarImportAction_->setText(TR("Import Folder"));
+    toolbarRebuildAction_->setText(TR("Rebuild Index"));
+
+    // 更新状态栏
+    statusLabel_->setText(TR("Ready"));
+    if (dbManager_) {
+        int64_t imageCount = dbManager_->totalCount();
+        dbStatsLabel_->setText(TR("Images: %1").arg(imageCount));
+    }
+
+    // 更新标签页名称
+    if (tabWidget_->count() >= 8) {
+        tabWidget_->setTabText(0, TR("Image Search"));
+        tabWidget_->setTabText(1, TR("Text Search"));
+        tabWidget_->setTabText(2, TR("Image→Text"));
+        tabWidget_->setTabText(3, TR("API AI"));
+        tabWidget_->setTabText(4, TR("Match"));
+        tabWidget_->setTabText(5, TR("Caption"));
+        tabWidget_->setTabText(6, TR("VQA"));
+        tabWidget_->setTabText(7, TR("Library"));
+    }
+
+    // 更新语言选择状态
+    englishAction_->setChecked(Translator::instance().currentLanguage() == Translator::English);
+    chineseAction_->setChecked(Translator::instance().currentLanguage() == Translator::Chinese);
+}
+
 void MainWindow::loadModels() {
-    QProgressDialog loadingDialog("Loading models...", QString(), 0, 0, this);
+    QProgressDialog loadingDialog(TR("Loading models..."), QString(), 0, 0, this);
     loadingDialog.setWindowModality(Qt::WindowModal);
     loadingDialog.setCancelButton(nullptr);
     loadingDialog.setMinimumDuration(0);
@@ -144,10 +233,8 @@ void MainWindow::loadModels() {
         if (!fs::exists(modelPath)) {
             QMessageBox::warning(
                 this,
-                "Warning",
-                "Model directory not found. Please ensure models are in ./assets/models/\n\n"
-                "Run the Python export script first:\n"
-                "  cd scripts && python export_clip_to_onnx.py"
+                TR("Warning"),
+                TR("Model directory not found. Please ensure models are in ./assets/models/\n\nRun the Python export script first:\n  cd scripts && python export_clip_to_onnx.py")
             );
         }
 
@@ -155,16 +242,13 @@ void MainWindow::loadModels() {
         modelManager_->setVocabPath(vocabPath);
         modelManager_->setEmbeddingDim(512);  // CN-CLIP 默认512维
 
-        // 预加载模型（可选）
-        // modelManager_->preloadAll();
-
-        statusLabel_->setText("Models configured successfully");
+        statusLabel_->setText(TR("Models configured successfully"));
 
     } catch (const std::exception& e) {
         QMessageBox::critical(
             this,
-            "Error",
-            QString("Failed to load models: %1").arg(e.what())
+            TR("Error"),
+            TR("Failed to load models: %1").arg(e.what())
         );
     }
 
@@ -194,40 +278,40 @@ void MainWindow::initializeDatabase() {
 
         // 创建图搜图标签页
         imageSearchTab_ = new ImageSearchWidget(dbManager_.get(), this);
-        tabWidget_->addTab(imageSearchTab_, "Image Search");
+        tabWidget_->addTab(imageSearchTab_, TR("Image Search"));
         // 文搜图
         textSearchTab_ = new TextSearchWidget(dbManager_.get(), this);
-        tabWidget_->addTab(textSearchTab_, "Text Search");
+        tabWidget_->addTab(textSearchTab_, TR("Text Search"));
         // 图搜文（示例语料）
         imageToTextTab_ = new ImageToTextWidget(modelManager_, this);
-        tabWidget_->addTab(imageToTextTab_, "Image→Text");
+        tabWidget_->addTab(imageToTextTab_, TR("Image→Text"));
         // 远程 API（文生图 / 图生文 VQA）
         apiTab_ = new ApiAIWidget(modelManager_, this);
-        tabWidget_->addTab(apiTab_, "API AI");
+        tabWidget_->addTab(apiTab_, TR("API AI"));
         // 图文匹配
         matchTab_ = new MatchWidget(modelManager_, this);
-        tabWidget_->addTab(matchTab_, "Match");
+        tabWidget_->addTab(matchTab_, TR("Match"));
         // 图生文
         captionTab_ = new CaptionWidget(modelManager_, this);
-        tabWidget_->addTab(captionTab_, "Caption");
+        tabWidget_->addTab(captionTab_, TR("Caption"));
         // VQA
         vqaTab_ = new VQAWidget(modelManager_, this);
-        tabWidget_->addTab(vqaTab_, "VQA");
+        tabWidget_->addTab(vqaTab_, TR("VQA"));
         // 图库管理
         databaseTab_ = new DatabaseWidget(dbManager_.get(), this);
-        tabWidget_->addTab(databaseTab_, "Library");
+        tabWidget_->addTab(databaseTab_, TR("Library"));
 
         // 更新统计信息
         int64_t imageCount = dbManager_->totalCount();
-        dbStatsLabel_->setText(QString("Images: %1").arg(imageCount));
+        dbStatsLabel_->setText(TR("Images: %1").arg(imageCount));
 
-        statusLabel_->setText("Database initialized successfully");
+        statusLabel_->setText(TR("Database initialized successfully"));
 
     } catch (const std::exception& e) {
         QMessageBox::critical(
             this,
-            "Error",
-            QString("Failed to initialize database: %1").arg(e.what())
+            TR("Error"),
+            TR("Failed to initialize database: %1").arg(e.what())
         );
     }
 }
@@ -235,7 +319,7 @@ void MainWindow::initializeDatabase() {
 void MainWindow::onImportFolder() {
     QString folderPath = QFileDialog::getExistingDirectory(
         this,
-        "Select Image Folder",
+        TR("Select Image Folder"),
         QString(),
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
     );
@@ -247,15 +331,15 @@ void MainWindow::onImportFolder() {
     // 询问是否递归
     auto reply = QMessageBox::question(
         this,
-        "Import Options",
-        "Include subdirectories?",
+        TR("Import Options"),
+        TR("Include subdirectories?"),
         QMessageBox::Yes | QMessageBox::No
     );
 
     bool recursive = (reply == QMessageBox::Yes);
 
     // 创建进度对话框
-    QProgressDialog progress("Importing images...", "Cancel", 0, 100, this);
+    QProgressDialog progress(TR("Importing images..."), TR("Cancel"), 0, 100, this);
     progress.setWindowModality(Qt::WindowModal);
     progress.show();
 
@@ -274,13 +358,13 @@ void MainWindow::onImportFolder() {
 
         QMessageBox::information(
             this,
-            "Import Complete",
-            QString("Successfully imported %1 images").arg(importedCount)
+            TR("Import Complete"),
+            TR("Successfully imported %1 images").arg(importedCount)
         );
 
         // 更新统计信息
         int64_t imageCount = dbManager_->totalCount();
-        dbStatsLabel_->setText(QString("Images: %1").arg(imageCount));
+        dbStatsLabel_->setText(TR("Images: %1").arg(imageCount));
 
         // 保存索引
         dbManager_->saveIndex();
@@ -289,8 +373,8 @@ void MainWindow::onImportFolder() {
         progress.close();
         QMessageBox::critical(
             this,
-            "Error",
-            QString("Import failed: %1").arg(e.what())
+            TR("Error"),
+            TR("Import failed: %1").arg(e.what())
         );
     }
 }
@@ -298,10 +382,8 @@ void MainWindow::onImportFolder() {
 void MainWindow::onRebuildIndex() {
     auto reply = QMessageBox::question(
         this,
-        "Rebuild Index",
-        "This will rebuild the entire search index.\n"
-        "This may take a while depending on the number of images.\n\n"
-        "Continue?",
+        TR("Rebuild Index"),
+        TR("This will rebuild the entire search index.\nThis may take a while depending on the number of images.\n\nContinue?"),
         QMessageBox::Yes | QMessageBox::No
     );
 
@@ -309,7 +391,7 @@ void MainWindow::onRebuildIndex() {
         return;
     }
 
-    QProgressDialog progress("Rebuilding index...", "Cancel", 0, 100, this);
+    QProgressDialog progress(TR("Rebuilding index..."), TR("Cancel"), 0, 100, this);
     progress.setWindowModality(Qt::WindowModal);
     progress.show();
 
@@ -327,14 +409,14 @@ void MainWindow::onRebuildIndex() {
         if (success) {
             QMessageBox::information(
                 this,
-                "Success",
-                "Index rebuilt successfully"
+                TR("Success"),
+                TR("Index rebuilt successfully")
             );
         } else {
             QMessageBox::warning(
                 this,
-                "Warning",
-                "Index rebuild completed with errors"
+                TR("Warning"),
+                TR("Index rebuild completed with errors")
             );
         }
 
@@ -342,8 +424,8 @@ void MainWindow::onRebuildIndex() {
         progress.close();
         QMessageBox::critical(
             this,
-            "Error",
-            QString("Rebuild failed: %1").arg(e.what())
+            TR("Error"),
+            TR("Rebuild failed: %1").arg(e.what())
         );
     }
 }
@@ -354,47 +436,61 @@ void MainWindow::onDatabaseStats() {
     auto categories = dbManager_->getAllCategories();
 
     QString stats = QString(
-        "Database Statistics\n"
+        "%1\n"
         "==================\n\n"
-        "Total Images: %1\n"
-        "Index Size: %2\n"
-        "Categories: %3\n\n"
-        "Database Path: %4\n"
-        "Index Path: %5"
-    ).arg(totalCount)
-     .arg(indexSize)
-     .arg(categories.size())
-     .arg(QString::fromStdString(dbManager_->getDbPath()))
-     .arg(QString::fromStdString(dbManager_->getIndexPath()));
+        "%2\n"
+        "%3\n"
+        "%4\n\n"
+        "%5\n"
+        "%6"
+    ).arg(TR("Database Statistics"))
+     .arg(TR("Total Images: %1").arg(totalCount))
+     .arg(TR("Index Size: %1").arg(indexSize))
+     .arg(TR("Categories: %1").arg(categories.size()))
+     .arg(TR("Database Path: %1").arg(QString::fromStdString(dbManager_->getDbPath())))
+     .arg(TR("Index Path: %1").arg(QString::fromStdString(dbManager_->getIndexPath())));
 
-    QMessageBox::information(this, "Database Statistics", stats);
+    QMessageBox::information(this, TR("Database Statistics"), stats);
 }
 
 void MainWindow::onSettings() {
     QMessageBox::information(
         this,
-        "Settings",
-        "Settings dialog not yet implemented.\n\n"
-        "Configure model paths in code or via config file."
+        TR("Settings"),
+        TR("Settings dialog not yet implemented.\n\nConfigure model paths in code or via config file.")
     );
 }
 
 void MainWindow::onAbout() {
-    QMessageBox::about(
-        this,
-        "About VIndex",
-        "<h2>VIndex - Visual Search Engine</h2>"
-        "<p>Version 1.0.0</p>"
-        "<p>A powerful image search application using CLIP embeddings and FAISS indexing.</p>"
-        "<p><b>Features:</b></p>"
-        "<ul>"
-        "<li>Image-to-image search</li>"
-        "<li>Text-to-image search</li>"
-        "<li>Fast similarity search with FAISS</li>"
-        "<li>ONNX Runtime inference</li>"
-        "</ul>"
-        "<p>Built with Qt6, OpenCV, ONNX Runtime, and FAISS.</p>"
-    );
+    QString aboutText;
+    if (Translator::instance().currentLanguage() == Translator::Chinese) {
+        aboutText =
+            "<h2>VIndex - 视觉搜索引擎</h2>"
+            "<p>版本 1.0.0</p>"
+            "<p>一个强大的图像搜索应用，使用 CLIP 嵌入和 FAISS 索引。</p>"
+            "<p><b>功能特性：</b></p>"
+            "<ul>"
+            "<li>以图搜图</li>"
+            "<li>以文搜图</li>"
+            "<li>基于 FAISS 的快速相似度搜索</li>"
+            "<li>ONNX Runtime 推理引擎</li>"
+            "</ul>"
+            "<p>基于 Qt6、OpenCV、ONNX Runtime 和 FAISS 构建。</p>";
+    } else {
+        aboutText =
+            "<h2>VIndex - Visual Search Engine</h2>"
+            "<p>Version 1.0.0</p>"
+            "<p>A powerful image search application using CLIP embeddings and FAISS indexing.</p>"
+            "<p><b>Features:</b></p>"
+            "<ul>"
+            "<li>Image-to-image search</li>"
+            "<li>Text-to-image search</li>"
+            "<li>Fast similarity search with FAISS</li>"
+            "<li>ONNX Runtime inference</li>"
+            "</ul>"
+            "<p>Built with Qt6, OpenCV, ONNX Runtime, and FAISS.</p>";
+    }
+    QMessageBox::about(this, TR("About VIndex"), aboutText);
 }
 
 void MainWindow::saveSettings() {
@@ -402,6 +498,7 @@ void MainWindow::saveSettings() {
 
     settings.setValue("geometry", saveGeometry());
     settings.setValue("windowState", saveState());
+    settings.setValue("language", static_cast<int>(Translator::instance().currentLanguage()));
 }
 
 void MainWindow::loadSettings() {
@@ -409,6 +506,10 @@ void MainWindow::loadSettings() {
 
     restoreGeometry(settings.value("geometry").toByteArray());
     restoreState(settings.value("windowState").toByteArray());
+
+    // 加载语言设置
+    int lang = settings.value("language", static_cast<int>(Translator::English)).toInt();
+    Translator::instance().setLanguage(static_cast<Translator::Language>(lang));
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
@@ -416,7 +517,7 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 
     // 保存索引
     if (dbManager_) {
-        statusLabel_->setText("Saving index...");
+        statusLabel_->setText(TR("Saving index..."));
         dbManager_->saveIndex();
     }
 

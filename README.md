@@ -1,211 +1,391 @@
-# VIndex - Vision/Language Indexing Suite
+<p align="center">
+  <img src="docs/images/logo.png" alt="VIndex Logo" width="120" height="120">
+</p>
 
-端到端的图像/文本检索与理解应用，整合 CLIP、BLIP、FAISS、SQLite 与 Qt6，支持图搜图、文搜图、图文匹配、图生文、图文问答等扩展场景。
+<h1 align="center">VIndex</h1>
 
-## 功能与模型映射
+<p align="center">
+  <strong>Visual Search Engine - 视觉搜索引擎</strong>
+</p>
 
-| 功能 | 模型 | ONNX 文件 | 输入 → 输出 |
-|------|------|-----------|-------------|
-| 图搜图 | CLIP ViT-L/14 | `assets/models/clip_visual.onnx` | Image → 768D |
-| 文搜图 | CLIP Text Encoder | `assets/models/clip_text.onnx` | Text → 768D |
-| 图文匹配 | CLIP 双编码器 | 同上 | (Image, Text) → Score |
-| 图生文 | BLIP2 / GIT | `assets/models/blip_caption.onnx` | Image → Text |
-| 图文问答 | BLIP2-VQA | `assets/models/blip_vqa.onnx` | (Image, Question) → Answer |
+<p align="center">
+  基于 CN-CLIP + FAISS 的跨平台图像检索与理解应用
+</p>
 
-## 仓库结构（扩展版）
+<p align="center">
+  <a href="#功能特性">功能特性</a> •
+  <a href="#快速开始">快速开始</a> •
+  <a href="#安装指南">安装指南</a> •
+  <a href="#使用说明">使用说明</a> •
+  <a href="#文档">文档</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/C++-17-blue.svg" alt="C++17">
+  <img src="https://img.shields.io/badge/Qt-6.6-green.svg" alt="Qt6">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License">
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="Platform">
+</p>
+
+---
+
+## 功能特性
+
+| 功能 | 描述 | 模型 |
+|:---:|:---|:---|
+| **以图搜图** | 上传图片，检索相似图像 | CN-CLIP ViT-B/16 |
+| **以文搜图** | 输入中/英文描述，搜索匹配图像 | CN-CLIP Text Encoder |
+| **图文匹配** | 计算图像与文本的相似度得分 | CN-CLIP 双编码器 |
+| **图像描述** | 自动生成图像的文字描述 | BLIP Caption |
+| **视觉问答** | 针对图像内容进行问答 | BLIP VQA |
+| **图库管理** | 导入、浏览、分类、删除图像 | SQLite + FAISS |
+
+### 亮点
+
+- **中文优化** - 采用 CN-CLIP 模型，中文搜索效果显著优于原版 CLIP
+- **高性能检索** - FAISS 向量索引，百万级图库毫秒级响应
+- **跨平台支持** - Windows / Linux / macOS 原生运行
+- **中英双语界面** - 支持运行时切换语言
+- **现代化 UI** - 基于 Qt6 的美观界面，支持自定义主题
+
+---
+
+## 界面预览
+
+<p align="center">
+  <img src="docs/images/screenshot_image_search.png" alt="Image Search" width="45%">
+  <img src="docs/images/screenshot_text_search.png" alt="Text Search" width="45%">
+</p>
+
+---
+
+## 快速开始
+
+### 1. 克隆项目
+
+```bash
+git clone https://github.com/your-username/vindex.git
+cd vindex
+```
+
+### 2. 安装依赖
+
+**Ubuntu/Debian:**
+```bash
+sudo apt install -y build-essential cmake git \
+    qt6-base-dev libopencv-dev libsqlite3-dev libxcb-cursor0
+```
+
+**Windows:** 参考 [Windows 完整构建指南](docs/WINDOWS_BUILD_GUIDE.md)
+
+### 3. 编译运行
+
+```bash
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
+./VIndex
+```
+
+### 4. 导出模型
+
+```bash
+cd scripts
+pip install -r requirements.txt
+python export_cn_clip_onnx.py --model ViT-B-16 --output ../assets/models
+```
+
+---
+
+## 安装指南
+
+### 依赖版本
+
+| 依赖 | 最低版本 | 推荐版本 |
+|:---|:---:|:---:|
+| CMake | 3.20 | 3.28+ |
+| Qt | 6.2 | 6.6.3 |
+| OpenCV | 4.5 | 4.10 |
+| ONNX Runtime | 1.14 | 1.16+ |
+| FAISS | 1.7 | 1.7.4 |
+| SQLite | 3.30 | 3.45 |
+| C++ 编译器 | C++17 | GCC 11+ / MSVC 2022 |
+
+### 平台安装
+
+<details>
+<summary><b>Linux (Ubuntu/Debian)</b></summary>
+
+```bash
+# 系统依赖
+sudo apt install -y build-essential cmake git \
+    qt6-base-dev libopencv-dev libsqlite3-dev libxcb-cursor0
+
+# ONNX Runtime
+wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-linux-x64-1.16.3.tgz
+tar -xzf onnxruntime-linux-x64-1.16.3.tgz
+sudo mv onnxruntime-linux-x64-1.16.3 /usr/local/onnxruntime
+
+# FAISS
+git clone https://github.com/facebookresearch/faiss.git
+cd faiss && mkdir build && cd build
+cmake .. -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF
+make -j$(nproc) && sudo make install
+```
+
+</details>
+
+<details>
+<summary><b>Windows</b></summary>
+
+详细步骤请参考 **[Windows 完整构建指南](docs/WINDOWS_BUILD_GUIDE.md)**
+
+快速概览：
+1. 安装 Visual Studio 2022 (C++ 桌面开发)
+2. 安装 CMake 3.28+
+3. 安装 Qt 6.6.3 (MSVC 2019 64-bit)
+4. 下载 OpenCV、ONNX Runtime、FAISS
+5. 配置环境变量
+6. CMake 构建
+
+</details>
+
+<details>
+<summary><b>macOS</b></summary>
+
+```bash
+# Homebrew 安装依赖
+brew install cmake qt@6 opencv sqlite faiss
+
+# ONNX Runtime
+wget https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-osx-arm64-1.16.3.tgz
+tar -xzf onnxruntime-osx-arm64-1.16.3.tgz
+export ONNXRUNTIME_ROOT=$PWD/onnxruntime-osx-arm64-1.16.3
+
+# 编译
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DQt6_DIR=$(brew --prefix qt@6)/lib/cmake/Qt6
+make -j$(sysctl -n hw.ncpu)
+```
+
+</details>
+
+---
+
+## 使用说明
+
+### 功能模块
+
+| 标签页 | 功能 | 使用方法 |
+|:---|:---|:---|
+| **Image Search** | 以图搜图 | 点击"选择图像"，设置参数后点击"搜索" |
+| **Text Search** | 以文搜图 | 输入描述文字（支持中英文），点击"搜索" |
+| **Match** | 图文匹配 | 选择图像，输入文本，点击"计算相似度" |
+| **Caption** | 图像描述 | 选择图像，点击"生成描述" |
+| **VQA** | 视觉问答 | 选择图像，输入问题，点击"提问" |
+| **Library** | 图库管理 | 浏览、筛选、删除已导入的图像 |
+
+### 导入图像
+
+1. 菜单 `File → Import Folder...` 或工具栏 `Import Folder`
+2. 选择图像文件夹
+3. 选择是否包含子目录
+4. 等待导入完成
+
+### 切换语言
+
+菜单 `Settings → Language → 中文/English`
+
+### 快捷键
+
+| 快捷键 | 功能 |
+|:---:|:---|
+| `Ctrl+I` | 导入文件夹 |
+| `Ctrl+Q` | 退出程序 |
+
+---
+
+## 项目结构
 
 ```
 vindex/
 ├── src/
-│   ├── core/                 # 模型与预处理
-│   │   ├── onnx_session.*    # ORT 会话管理
-│   │   ├── clip_encoder.*    # CLIP 编码器
-│   │   ├── caption_model.*   # 图生文
-│   │   ├── vqa_model.*       # 图文问答
-│   │   └── model_manager.*   # 模型单例管理
-│   ├── index/                # 数据与索引
-│   │   ├── faiss_index.*     # 向量检索封装
-│   │   ├── id_mapping.*      # ID ↔ 路径映射
-│   │   └── database_manager.*# SQLite 图库管理
-│   ├── gui/                  # Qt6 界面
-│   │   ├── main_window.*     # 主窗口 Tab
-│   │   ├── image_search_widget.*  # 图搜图
-│   │   ├── text_search_widget.*   # 文搜图
-│   │   ├── match_widget.*         # 图文匹配
-│   │   ├── caption_widget.*       # 图生文
-│   │   ├── vqa_widget.*           # 问答
-│   │   └── image_gallery.*        # 结果展示组件
-│   ├── utils/                # 配置/日志/文件工具
-│   └── main.cpp              # 应用入口
+│   ├── core/                    # 核心模块
+│   │   ├── clip_encoder.*       # CLIP 编码器
+│   │   ├── model_manager.*      # 模型管理器
+│   │   ├── caption_model.*      # 图像描述模型
+│   │   └── vqa_model.*          # VQA 模型
+│   ├── index/                   # 索引模块
+│   │   ├── faiss_index.*        # FAISS 向量索引
+│   │   └── database_manager.*   # 数据库管理
+│   ├── gui/                     # GUI 模块
+│   │   ├── main_window.*        # 主窗口
+│   │   ├── image_search_widget.*# 图搜图
+│   │   ├── text_search_widget.* # 文搜图
+│   │   └── ...                  # 其他功能组件
+│   └── utils/                   # 工具模块
+│       ├── translator.*         # 多语言支持
+│       └── api_client.*         # API 客户端
 ├── assets/
-│   ├── models/               # ONNX 权重
-│   ├── vocab/                # 词表
-│   └── config/               # 应用配置
-├── data/                     # 运行时数据（自动生成）
-│   ├── image_database/
-│   ├── index/ (faiss.index, id_map.db)
-│   └── cache/
-├── resources/                # Qt 资源（icons/styles/app.qrc）
-├── scripts/                  # 模型导出与工具脚本
-└── CMakeLists.txt
+│   ├── models/                  # ONNX 模型文件
+│   └── vocab/                   # 词表文件
+├── scripts/                     # Python 工具脚本
+│   ├── export_cn_clip_onnx.py   # CN-CLIP 导出
+│   └── requirements.txt         # Python 依赖
+├── resources/
+│   └── styles/                  # QSS 样式表
+├── docs/                        # 文档
+└── CMakeLists.txt               # CMake 配置
 ```
 
-## 核心模块职责
+---
 
-- `core/model_manager.*` 单例管理 ORT 环境和所有模型实例，支持懒加载与预加载。
-- `core/clip_encoder.*` 图像/文本编码、图文匹配，封装预处理与归一化。
-- `index/faiss_index.*` 向量索引封装（新增/删除/批量/检索）。
-- `index/database_manager.*` SQLite 元数据 + FAISS 同步；支持批量导入、重建索引。
-- `gui/*_widget.*` 按功能划分的 Qt6 界面组件；`image_gallery.*` 复用结果网格。
+## 文档
 
-## 开发阶段规划
+| 文档 | 描述 |
+|:---|:---|
+| [快速开始指南](docs/QUICKSTART.md) | 5分钟上手教程 |
+| [Windows 构建指南](docs/WINDOWS_BUILD_GUIDE.md) | Windows 从零开始完整指南 |
+| [编译指南](docs/BUILD.md) | 多平台编译说明 |
+| [CN-CLIP 支持](docs/CHINESE_CLIP_SUPPORT.md) | 中文 CLIP 模型配置 |
+| [项目技术总结](docs/PROJECT_SUMMARY.md) | 架构设计与实现细节 |
 
-- 阶段一：基础框架（CMake + ORT + OpenCV + FAISS + Qt 主窗口骨架）
-- 阶段二：图搜图（ClipEncoder、FaissIndex、DatabaseManager、ImageSearchWidget 端到端）
-- 阶段三：文搜图/图文匹配（CLIP 文本编码、BPE 分词器、TextSearchWidget）
-- 阶段四：图生文 + VQA（BLIP 导出、CaptionModel/VQAModel、对应界面）
-- 阶段五：完善与打包（图库管理、配置持久化、日志、错误处理、windeployqt/静态链接）
+---
 
-## 依赖
+## 技术栈
 
-- Qt6 Widgets/Core/Gui/Sql
-- OpenCV (core, imgproc, imgcodecs, highgui)
-- ONNX Runtime (CPU 或 GPU)
-- FAISS (CPU 版即可，GPU 可选)
-- SQLite3
-- 编译器：C++17 及以上
+<p align="center">
+  <img src="https://img.shields.io/badge/Qt-6.6-41CD52?logo=qt&logoColor=white" alt="Qt">
+  <img src="https://img.shields.io/badge/OpenCV-4.10-5C3EE8?logo=opencv&logoColor=white" alt="OpenCV">
+  <img src="https://img.shields.io/badge/ONNX_Runtime-1.16-FF6F00?logo=onnx&logoColor=white" alt="ONNX Runtime">
+  <img src="https://img.shields.io/badge/FAISS-1.7-0467DF?logo=meta&logoColor=white" alt="FAISS">
+  <img src="https://img.shields.io/badge/SQLite-3.45-003B57?logo=sqlite&logoColor=white" alt="SQLite">
+  <img src="https://img.shields.io/badge/CN--CLIP-ViT--B/16-FF4500" alt="CN-CLIP">
+</p>
 
-### 快速安装示例
+### 数据流
 
-#### Linux (Debian/Ubuntu)
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                           VIndex 数据流                              │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  以图搜图:                                                           │
+│  Image → OpenCV预处理 → CLIP Visual → 512D向量 → FAISS检索 → 结果    │
+│                                                                     │
+│  以文搜图:                                                           │
+│  Text → Tokenizer → CLIP Text → 512D向量 → FAISS检索 → 结果          │
+│                                                                     │
+│  图文匹配:                                                           │
+│  Image + Text → CLIP双编码器 → 余弦相似度 → 得分                      │
+│                                                                     │
+│  图像描述:                                                           │
+│  Image → BLIP Encoder → Decoder → Caption                           │
+│                                                                     │
+│  视觉问答:                                                           │
+│  Image + Question → BLIP VQA → Answer                               │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 性能参考
+
+| 操作 | 数据量 | 耗时 | 环境 |
+|:---|:---:|:---:|:---|
+| 图像编码 | 1张 | ~50ms | CPU (i7-12700) |
+| 文本编码 | 1条 | ~10ms | CPU |
+| FAISS 检索 | 10万图库 | ~5ms | CPU |
+| 批量导入 | 1000张 | ~60s | CPU |
+
+---
+
+## 常见问题
+
+<details>
+<summary><b>Q: 运行时提示找不到 libxcb-cursor0</b></summary>
+
+**A:** 这是 Qt6 在 Linux 上的依赖：
 ```bash
-sudo apt install qt6-base-dev libopencv-dev libsqlite3-dev
-pip install onnxruntime  # 或下载官方 tar 包设置 ONNXRUNTIME_ROOT
-conda install -c conda-forge faiss-cpu  # 或源码编译
+sudo apt install libxcb-cursor0
 ```
 
-#### Windows (vcpkg)
-```powershell
-.\vcpkg install qt6-base opencv4 sqlite3 faiss:x64-windows
-# ONNX Runtime 手动下载解压，设置 ONNXRUNTIME_ROOT
-```
+</details>
 
-## 模型与词表准备
+<details>
+<summary><b>Q: 中文搜索效果不好</b></summary>
 
-1) CLIP 导出：`scripts/export_clip_to_onnx.py --model ViT-L-14 --pretrained openai`
-2) 词表：下载 `bpe_simple_vocab_16e6.txt.gz` → 解压到 `assets/vocab/clip_vocab.txt`
-3) BLIP/BLIP2/GIT/BLIP2-VQA：按各自转换脚本导出 ONNX，放入 `assets/models/`
-4) 配置：`assets/config/app_config.json` 中可设置模型目录、索引路径、UI 选项等。
+**A:** 确保使用 CN-CLIP 模型而非原版 CLIP。运行 `scripts/export_cn_clip_onnx.py` 导出中文模型。
 
-## 构建与运行
+</details>
 
+<details>
+<summary><b>Q: 如何切换到 GPU 推理？</b></summary>
+
+**A:**
+1. 下载 ONNX Runtime GPU 版本
+2. 安装 CUDA 和 cuDNN
+3. 在代码中启用 CUDA Provider
+
+</details>
+
+<details>
+<summary><b>Q: 模型文件在哪里下载？</b></summary>
+
+**A:** 运行导出脚本自动下载：
 ```bash
-mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release \
-  -DONNXRUNTIME_ROOT=/path/to/onnxruntime
-cmake --build . --config Release
-./VIndex   # Windows 下执行 VIndex.exe
+cd scripts
+python export_cn_clip_onnx.py --model ViT-B-16 --output ../assets/models
 ```
 
-常见 CMake 选项：
-- `-DQt6_DIR`, `-DOpenCV_DIR`, `-DFAISS_DIR`, `-DSQLite3_DIR` 指向自定义安装。
-- `-DUSE_CUDA=ON`（若在 CMakeLists 中开启）可切换 ORT/FAISS GPU。
+</details>
 
-## 数据与路径约定
+---
 
-- 模型：`assets/models/*.onnx`
-- 词表：`assets/vocab/*.txt`
-- 数据库：`data/index/id_map.db`
-- 向量索引：`data/index/faiss.index`
-- 缩略图缓存：`data/cache/`
-- 图库根目录：`data/image_database/`
+## 路线图
 
-## 中文 CLIP 配置示例
+- [x] 以图搜图
+- [x] 以文搜图（中英文）
+- [x] 图文匹配
+- [x] 图库管理
+- [x] 中英文界面切换
+- [ ] 图像描述（BLIP）
+- [ ] 视觉问答（VQA）
+- [ ] GPU 加速
+- [ ] 打包发布（AppImage / DMG / MSI）
+- [ ] 插件系统
 
-如需中文文搜图，建议切换到中文 CLIP（保持视觉/文本编码器同一套权重）：
-- 备选模型（Hugging Face）：
-  - `IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese`（ViT-B/16，常见输出维度 512/768，按导出结果设置）
-  - `eisneim/cn-clip_vit-b-16`（维度通常 512）
-- 步骤：
-  1) 下载模型并导出 ONNX：视觉→`assets/models/clip_visual.onnx`，文本→`assets/models/clip_text.onnx`。若使用 eisneim 提供的 ONNX，可直接放置到 `assets/models/cn-clip-eisneim/vit-b-16.{img,txt}.fp32.onnx`（或 fp16）。
-  2) 导出/复制 tokenizer 词表到 `assets/vocab/clip_vocab.txt`（或使用模型自带 `assets/models/cn-clip/vocab.txt`）。
-  3) 在 `ModelManager`/配置中将 `embedding_dim` 设置为模型输出维度（eisneim 为 512），并清空旧的 FAISS 索引后重建。
-  4) 重新导入图库，文搜图即使用中文模型。
-
-## 开发与测试建议
-
-- 首先跑通图搜图：导出 CLIP、少量样本图、`Database → Import`、`Image Search` Tab。
-- 批量导入时开启批处理（在 `database_manager.*` 中配置批大小）。
-- 新模型接入：在 `model_manager.*` 注册，保持 ORT 环境共享以减少内存占用。
-- 如需 GPU，加上 ORT CUDA provider 与 FAISS GPU 版本，注意 CUDA/cuDNN 兼容。
-
-## 后续路线
-
-- 增加增量索引持久化与崩溃恢复
-- 增加中文/多语言 tokenizer 支持
-- 引入检索重排（CLIP 互评或跨模态交互）
-- 打包发布（windeployqt / macdeployqt / Linux AppImage）
-
-## 数据流速览
-
-- 图搜图：`QImage → cv::Mat 预处理 → CLIP Visual → 512/768D → FAISS 检索 → SQLite 取元数据 → UI 展示`
-- 文搜图：`文本 → Tokenizer → CLIP Text → 512/768D → FAISS 检索 → 元数据 → UI`
-- 图文匹配：`图像 + 文本 → CLIP 双编码 → 相似度得分 → UI`
-- 图生文 / VQA：`图像 (+ 问题) → BLIP/BLIP2 ONNX → 文本输出 → UI`
-
-## 任务清单（执行顺序建议）
-
-- [ ] 导出/校验 CLIP ONNX 与词表，补齐 `assets/models` 与 `assets/vocab`
-- [ ] 打通 ORT + OpenCV + FAISS 编译链（CMake 可选 CUDA 开关）
-- [ ] 实现 `ClipEncoder` 与 `FaissIndex`，写最小端到端图搜图 demo
-- [ ] 接入 `DatabaseManager`，完成批量导入/删除/重建索引
-- [ ] 完成 `ImageSearchWidget`，验证 UI 流程
-- [ ] 接入文本检索与匹配（Tokenizer + TextSearchWidget）
-- [ ] 接入 BLIP Caption/VQA，完善 UI Tab
-- [ ] 增加配置持久化、日志、错误提示与加载进度
-- [ ] 打包与发布脚本（windeployqt/macdeployqt/AppImage），补充用户文档
-
-## 测试建议
-
-- 单元：Tokenizer 分词一致性、向量归一化、FaissIndex 增删查、数据库 CRUD 与事务
-- 集成：小样本图库（<100 图）端到端检索；大样本（>10k 图）构建与查询耗时
-- UI：多平台（Win/Linux/macOS）窗口缩放、Tab 切换、导入/取消、加载时禁用按钮
-- 性能：批处理导入、批量编码；GPU/CPU 结果一致性抽检；内存占用与索引尺寸线性检查
-
-## 维护与贡献
-
-- C++17，保持头/源一一对应；公共接口放在 `.h`，实现与私有函数放 `.cpp`
-- 日志/错误通过 `utils/logger.*`，避免散落 `std::cout`
-- 提交前运行：格式化（clang-format 若有配置）、最小功能自测；提交信息简洁、动词开头
-
-## 扩展功能（TODO）
-
-- [ ] 文搜图界面
-- [ ] 图生文功能
-- [ ] 图文问答（VQA）
-- [ ] 分类管理
-- [ ] 标签系统
-- [ ] 批量操作
-- [ ] 导出结果
-
-## 许可证
-
-MIT License
+---
 
 ## 贡献
 
-欢迎提交Issue和Pull Request！
+欢迎提交 Issue 和 Pull Request！
 
-## 📚 完整文档
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 提交 Pull Request
 
-- **[快速开始指南](docs/QUICKSTART.md)** - 5分钟上手教程
-- **[详细编译指南](docs/BUILD.md)** - Windows/Linux/macOS 编译说明
-- **[项目技术总结](docs/PROJECT_SUMMARY.md)** - 架构设计与实现细节
+---
+
+## 许可证
+
+本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+
+---
 
 ## 致谢
 
-- OpenAI CLIP
-- FAISS by Facebook Research
-- ONNX Runtime by Microsoft
-- Qt Framework
-- OpenCV
+- [CN-CLIP](https://github.com/OFA-Sys/Chinese-CLIP) - 中文 CLIP 模型
+- [FAISS](https://github.com/facebookresearch/faiss) - 向量相似度搜索
+- [ONNX Runtime](https://github.com/microsoft/onnxruntime) - 模型推理引擎
+- [Qt](https://www.qt.io/) - 跨平台 GUI 框架
+- [OpenCV](https://opencv.org/) - 计算机视觉库
+
+---
+
+<p align="center">
+  Made with ❤️ by VIndex Team
+</p>

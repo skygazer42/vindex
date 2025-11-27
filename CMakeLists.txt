@@ -100,6 +100,7 @@ set(CORE_SOURCES
     src/core/caption_model.cpp
     src/core/vqa_model.cpp
     src/utils/api_client.cpp
+    src/utils/translator.cpp
 )
 
 set(CORE_HEADERS
@@ -111,6 +112,7 @@ set(CORE_HEADERS
     src/core/caption_model.h
     src/core/vqa_model.h
     src/utils/api_client.h
+    src/utils/translator.h
 )
 
 # 索引模块

@@ -5,11 +5,13 @@
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStatusBar>
+#include <QActionGroup>
 #include <memory>
 
 #include "image_search_widget.h"
 #include "../index/database_manager.h"
 #include "../core/model_manager.h"
+#include "../utils/translator.h"
 
 namespace vindex {
 namespace gui {
@@ -47,6 +49,9 @@ private slots:
     void onAbout();
     void onSettings();
     void onDatabaseStats();
+    void onLanguageChanged();
+    void onSwitchToEnglish();
+    void onSwitchToChinese();
 
 private:
     void setupUI();
@@ -58,6 +63,7 @@ private:
     void saveSettings();
     void loadSettings();
     void loadStyleSheet();
+    void retranslateUI();
 
 private:
     // 核心组件
@@ -78,6 +84,24 @@ private:
     // 状态栏
     QLabel* statusLabel_;
     QLabel* dbStatsLabel_;
+
+    // 菜单项（需要保存引用以便更新文本）
+    QMenu* fileMenu_;
+    QMenu* databaseMenu_;
+    QMenu* settingsMenu_;
+    QMenu* languageMenu_;
+    QMenu* helpMenu_;
+    QAction* importAction_;
+    QAction* exitAction_;
+    QAction* rebuildAction_;
+    QAction* statsAction_;
+    QAction* preferencesAction_;
+    QAction* englishAction_;
+    QAction* chineseAction_;
+    QAction* aboutAction_;
+    QToolBar* toolbar_;
+    QAction* toolbarImportAction_;
+    QAction* toolbarRebuildAction_;
 };
 
 } // namespace gui
