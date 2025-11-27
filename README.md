@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="resources/data/logo.jpg" alt="VIndex Logo" width="160" height="160">
+  <img src="resources/data/logo.jpg" alt="VIndex Logo" width="200" height="200">
 </p>
 
 <h1 align="center">VIndex</h1>
